@@ -19,7 +19,7 @@
 #include <seqan3/alphabet/concept.hpp>
 #include <seqan3/search/kmer_index/shape.hpp>
 #include <seqan3/range/views/take.hpp>
-#include <../../../../seqan-tutorial/ntHash-master/nthash.hpp>
+#include <seqan3/contrib/nthash/nthash.hpp>
 #include <seqan3/range/views/to_char.hpp>
 
 namespace seqan3::detail
