@@ -133,8 +133,9 @@ private:
             shape_{s_}, text_left{it_start}, text_right{it_start}
         {
             assert(std::ranges::size(shape_) > 0);
-
-            if (!shape_.all()) {
+            shape_size = shape_.size();
+            shape_all = shape_.all();
+            if (!shape_all) {
                 // for (auto it = shape_.begin(); it != shape_.end(); ++it) {
                 //     shapeAsVector.push_back(*it);
                 // }
@@ -392,6 +393,10 @@ private:
         //!\brief The shape to use.
         shape shape_;
 
+        unsigned shape_size;
+
+        bool shape_all;
+
         //!\brief Iterator to the leftmost position of the k-mer.
         it_t text_left;
 
@@ -404,16 +409,15 @@ private:
         //!\brief Increments iterator by 1.
         void hash_forward()
         {
-            hash_roll_forward();
-            // if (shape_.all())
-            // {
-            //     hash_roll_forward();
-            // }
-            // else
-            // {
-            //     std::ranges::advance(text_left,  1);
-            //     hash_full();
-            // }
+            if (shape_all)
+            {
+                hash_roll_forward();
+            }
+            else
+            {
+                std::ranges::advance(text_left,  1);
+                hash_full();
+            }
         }
 
         /*!\brief Increments iterator by `skip`.
@@ -467,12 +471,13 @@ private:
 
             // std::ranges::advance(text_right, 2);
 
-            if (shape_.all()) 
+            if (shape_all) 
             {
                 std::string kSeq = "";
                 for (size_t i{0}; i < shape_.size(); ++i)
                 {
-                    kSeq += (*(text_right)).to_char();
+                    // kSeq += (*(text_right)).to_char();
+                    kSeq += (*(text_right));
                     std::ranges::advance(text_right, 1);
                 }
                 hash_value = NTF64(kSeq.c_str(), shape_.size());
@@ -494,16 +499,8 @@ private:
         {
             std::ranges::advance(text_right, 1);
             
-            if (shape_.all()) 
-            {
-                hash_value = NTF64(hash_value, shape_.size(), (*(text_left)).to_char(), (*(text_right)).to_char());
-            } 
-            else 
-            {
-                // kmerSeq = kmerSeq.substr(1);
-                // kmerSeq += (*(text_right)).to_char();
-                // hash_value = NTS64(kmerSeq.c_str(), shapeAsVector, (*(text_left)).to_char(), (*(text_right)).to_char(), shape_.size(), hash_value);
-            }
+            // hash_value = NTF64(hash_value, shape_.size(), (*(text_left)).to_char(), (*(text_right)).to_char());
+            hash_value = NTF64(hash_value, shape_size, (*(text_left)), (*(text_right)));
 
             std::ranges::advance(text_left,  1);
         }
@@ -542,11 +539,6 @@ public:
      */
     kmer_nthash_view(urng_t urange_, shape const & s_) : urange{std::move(urange_)}, shape_{s_}
     {
-        if (shape_.size() > (64 / std::log2(alphabet_size<reference_t<urng_t>>)))
-        {
-            throw std::invalid_argument{"The chosen shape/alphabet combination is not valid. "
-                                        "The alphabet or shape size must be reduced."};
-        }
     }
 
     /*!\brief Construct from a non-view that can be view-wrapped and a given shape.
@@ -562,11 +554,6 @@ public:
     kmer_nthash_view(rng_t && urange_, shape const & s_) :
         urange{std::views::all(std::forward<rng_t>(urange_))}, shape_{s_}
     {
-        if (shape_.size() > (64 / std::log2(alphabet_size<reference_t<urng_t>>)))
-        {
-            throw std::invalid_argument{"The chosen shape/alphabet combination is not valid. "
-                                        "The alphabet or shape size must be reduced."};
-        }
     }
     //!\}
 

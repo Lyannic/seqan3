@@ -130,6 +130,8 @@ private:
         {
             assert(std::ranges::size(shape_) > 0);
 
+            shape_all = shape_.all();
+
             roll_factor = std::pow(sigma, std::ranges::size(shape_) - 1);
 
             hash_full();
@@ -382,6 +384,8 @@ private:
         //!\brief The shape to use.
         shape shape_;
 
+        bool shape_all;
+
         //!\brief Iterator to the leftmost position of the k-mer.
         it_t text_left;
 
@@ -391,7 +395,7 @@ private:
         //!\brief Increments iterator by 1.
         void hash_forward()
         {
-            if (shape_.all())
+            if (shape_all)
             {
                 hash_roll_forward();
             }
@@ -461,12 +465,20 @@ private:
         //!\brief Calculates the next hash value via rolling hash.
         void hash_roll_forward()
         {
-            hash_value -= to_rank(*(text_left)) * roll_factor;
-            hash_value += to_rank(*(text_right));
-            hash_value *= sigma;
+            // hash_value -= to_rank(*(text_left)) * roll_factor;
+            // hash_value += to_rank(*(text_right));
+            // hash_value *= sigma;
+            calc_hash();
 
             std::ranges::advance(text_left,  1);
             std::ranges::advance(text_right, 1);
+        }
+
+        void calc_hash()
+        {
+            hash_value -= to_rank(*(text_left)) * roll_factor;
+            hash_value += to_rank(*(text_right));
+            hash_value *= sigma;
         }
 
         /*!\brief Calculates the previous hash value via rolling hash.
