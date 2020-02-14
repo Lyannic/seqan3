@@ -28,6 +28,8 @@ static const uint64_t seedG = 0x20323ed082572324;
 static const uint64_t seedT = 0x295549f54be24456;
 static const uint64_t seedN = 0x0000000000000000;
 
+static const uint64_t seqanSeedTab[4] = {seedA, seedC, seedG, seedC};
+
 static const uint64_t seedTab[256] = {
     seedN, seedT, seedN, seedG, seedA, seedN, seedN, seedC, // 0..7
     seedN, seedN, seedN, seedN, seedN, seedN, seedN, seedN, // 8..15
@@ -111,6 +113,7 @@ static const uint64_t N31l[31] = {
     seedN,seedN,seedN,seedN,seedN,seedN,seedN
 };
 
+static const uint64_t *seqanMsTab33r[4] = {A33r, C33r, G33r, T33r};
 
 static const uint64_t *msTab33r[256] = {
     N33r, T33r, N33r, G33r, A33r, N33r, N33r, C33r, // 0..7
@@ -146,6 +149,8 @@ static const uint64_t *msTab33r[256] = {
     N33r, N33r, N33r, N33r, N33r, N33r, N33r, N33r, // 240..247
     N33r, N33r, N33r, N33r, N33r, N33r, N33r, N33r  // 248..255
 };
+
+static const uint64_t *seqanMsTab31l[4] = {A31l, C31l, G31l, T31l};
 
 static const uint64_t *msTab31l[256] = {
     N31l, T31l, N31l, G31l, A31l, N31l, N31l, C31l, // 0..7
@@ -244,6 +249,14 @@ inline uint64_t NTF64(const uint64_t fhVal, const unsigned k, const unsigned cha
     hVal = swapbits033(hVal);
     hVal ^= seedTab[charIn];
     hVal ^= (msTab31l[charOut][k%31] | msTab33r[charOut][k%33]);
+    return hVal;
+}
+
+inline uint64_t seqanNTF64(const uint64_t fhVal, const unsigned k, const unsigned charOut, const unsigned charIn) {
+    uint64_t hVal = rol1(fhVal);
+    hVal = swapbits033(hVal);
+    hVal ^= seqanSeedTab[charIn];
+    hVal ^= (seqanMsTab31l[charOut][k%31] | seqanMsTab33r[charOut][k%33]);
     return hVal;
 }
 

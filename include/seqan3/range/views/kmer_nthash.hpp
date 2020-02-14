@@ -476,8 +476,8 @@ private:
                 std::string kSeq = "";
                 for (size_t i{0}; i < shape_.size(); ++i)
                 {
-                    // kSeq += (*(text_right)).to_char();
-                    kSeq += (*(text_right));
+                    kSeq += (*(text_right)).to_char();
+                    // kSeq += (*(text_right));
                     std::ranges::advance(text_right, 1);
                 }
                 hash_value = NTF64(kSeq.c_str(), shape_.size());
@@ -499,8 +499,8 @@ private:
         {
             std::ranges::advance(text_right, 1);
             
-            // hash_value = NTF64(hash_value, shape_.size(), (*(text_left)).to_char(), (*(text_right)).to_char());
-            hash_value = NTF64(hash_value, shape_size, (*(text_left)), (*(text_right)));
+            // hash_value = NTF64(hash_value, shape_size, (*(text_left)).to_char(), (*(text_right)).to_char());
+            hash_value = seqanNTF64(hash_value, shape_size, to_rank(*(text_left)), to_rank(*(text_right)));
 
             std::ranges::advance(text_left,  1);
         }
