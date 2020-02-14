@@ -10,6 +10,7 @@
 #include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/range/views/kmer_hash.hpp>
 #include <seqan3/range/views/kmer_nthash.hpp>
+#include <seqan3/range/views/to_char.hpp>
 #include <seqan3/test/performance/sequence_generator.hpp>
 #include <seqan3/test/performance/naive_kmer_hash.hpp>
 #include <seqan3/test/performance/units.hpp>
@@ -84,6 +85,32 @@ static void seqan_kmer_nthash_ungapped(benchmark::State & state)
     {
         for (auto h : seq | views::kmer_nthash(ungapped{static_cast<uint8_t>(k)}))
             benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
+static void nthash_ungapped(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto generatedSeq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto genereatedSeqVec = generatedSeq | views::to_char;
+    std::string seq(genereatedSeqVec.begin(), genereatedSeqVec.end());
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        uint64_t hVal;
+        hVal = NTF64(seq.c_str(), k);
+        benchmark::DoNotOptimize(sum += hVal);
+        for (size_t i = 1; i < seq.length() - k + 1; i++) {
+            hVal = NTF64(hVal, k, seq[i-1], seq[i-1+k]);
+            benchmark::DoNotOptimize(sum += hVal);
+        }
     }
 
     state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
@@ -196,6 +223,7 @@ BENCHMARK(seqan2_kmer_hash_gapped)->Apply(arguments);
 
 BENCHMARK(seqan_kmer_hash_ungapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_nthash_ungapped)->Apply(arguments);
+BENCHMARK(nthash_ungapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_hash_gapped)->Apply(arguments);
 BENCHMARK(naive_kmer_hash)->Apply(arguments);
 
