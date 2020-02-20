@@ -232,6 +232,13 @@ inline uint64_t NTF64(const char * kmerSeq, const unsigned k) {
     return hVal;
 }
 
+inline uint64_t seqanNTF64(const uint64_t fhVal, const unsigned charIn) {
+    uint64_t hVal = rol1(fhVal);
+    hVal = swapbits033(hVal);
+    hVal ^= seqanSeedTab[charIn];
+    return hVal;
+}
+
 // reverse-strand hash value of the base kmer, i.e. rhval(kmer_0)
 inline uint64_t NTR64(const char * kmerSeq, const unsigned k) {
     uint64_t hVal=0;

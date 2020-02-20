@@ -133,13 +133,9 @@ private:
             shape_{s_}, text_left{it_start}, text_right{it_start}
         {
             assert(std::ranges::size(shape_) > 0);
+
             shape_size = shape_.size();
             shape_all = shape_.all();
-            if (!shape_all) {
-                // for (auto it = shape_.begin(); it != shape_.end(); ++it) {
-                //     shapeAsVector.push_back(*it);
-                // }
-            }
 
             hash_full();
         }
@@ -372,7 +368,6 @@ private:
         //!\brief Return the hash value.
         value_type operator*() const noexcept
         {
-            // return hash_value + to_rank(*text_right);
             return hash_value;
         }
 
@@ -402,9 +397,6 @@ private:
 
         //!\brief Iterator to the rightmost position of the k-mer.
         it_t text_right;
-
-        // std::string kmerSeq;
-        // std::vector<bool> shapeAsVector;
 
         //!\brief Increments iterator by 1.
         void hash_forward()
@@ -466,31 +458,12 @@ private:
         void hash_full()
         {
             text_right = text_left;
-            
-            // std::ranges::advance(text_right, shape_.size());
+            hash_value = 0;
 
-            // std::ranges::advance(text_right, 2);
-
-            if (shape_all) 
+            for (size_t i{0}; i < shape_size; ++i)
             {
-                std::string kSeq = "";
-                for (size_t i{0}; i < shape_.size(); ++i)
-                {
-                    kSeq += (*(text_right)).to_char();
-                    // kSeq += (*(text_right));
-                    std::ranges::advance(text_right, 1);
-                }
-                hash_value = NTF64(kSeq.c_str(), shape_.size());
-            } 
-            else 
-            {
-                // kmerSeq = "";
-                // for (size_t i{0}; i < shape_.size(); ++i)
-                // {
-                //     kmerSeq += (*(text_right)).to_char();
-                //     std::ranges::advance(text_right, 1);
-                // }
-                // hash_value = NTS64(kmerSeq.c_str(), shapeAsVector, shape_.size(), hash_value);
+                hash_value = seqanNTF64(hash_value, to_rank(*(text_right)));
+                std::ranges::advance(text_right, 1);
             }
         }
 
@@ -499,7 +472,6 @@ private:
         {
             std::ranges::advance(text_right, 1);
             
-            // hash_value = NTF64(hash_value, shape_size, (*(text_left)).to_char(), (*(text_right)).to_char());
             hash_value = seqanNTF64(hash_value, shape_size, to_rank(*(text_left)), to_rank(*(text_right)));
 
             std::ranges::advance(text_left,  1);
