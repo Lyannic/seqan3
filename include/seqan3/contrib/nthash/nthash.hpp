@@ -28,7 +28,7 @@ static const uint64_t seedG = 0x20323ed082572324;
 static const uint64_t seedT = 0x295549f54be24456;
 static const uint64_t seedN = 0x0000000000000000;
 
-static const uint64_t seqanSeedTab[4] = {seedA, seedC, seedG, seedC};
+static const uint64_t seqanSeedTab[4] = {seedA, seedC, seedG, seedT};
 
 static const uint64_t seedTab[256] = {
     seedN, seedT, seedN, seedG, seedA, seedN, seedN, seedC, // 0..7
