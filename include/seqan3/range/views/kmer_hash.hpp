@@ -17,6 +17,7 @@
 #include <seqan3/alphabet/concept.hpp>
 #include <seqan3/range/hash.hpp>
 #include <seqan3/search/kmer_index/shape.hpp>
+#include <seqan3/core/debug_stream.hpp>
 
 namespace seqan3::detail
 {
@@ -133,6 +134,20 @@ private:
             shape_all = shape_.all();
 
             roll_factor = std::pow(sigma, std::ranges::size(shape_) - 1);
+
+            if(!shape_all) 
+            {
+                for (size_t i{0}; i < shape_.size() - 1u; ++i)
+                {
+                    shape_mask += shape_[i];
+                    shape_mask *= 2;
+                    shape_mask += shape_[i];
+                    shape_mask *= 2;
+                }
+                shape_mask += shape_[shape_.size() - 1u];
+                shape_mask *= 2;
+                shape_mask += shape_[shape_.size() - 1u];
+            }
 
             hash_full();
         }
@@ -365,7 +380,11 @@ private:
         //!\brief Return the hash value.
         value_type operator*() const noexcept
         {
-            return hash_value + to_rank(*text_right);
+            if(shape_all) 
+            {
+                return hash_value + to_rank(*text_right);
+            }
+            return (hash_value + to_rank(*text_right)) & shape_mask;
         }
 
     private:
@@ -384,6 +403,8 @@ private:
         //!\brief The shape to use.
         shape shape_;
 
+        size_t shape_mask{0};
+
         bool shape_all;
 
         //!\brief Iterator to the leftmost position of the k-mer.
@@ -395,15 +416,16 @@ private:
         //!\brief Increments iterator by 1.
         void hash_forward()
         {
-            if (shape_all)
-            {
-                hash_roll_forward();
-            }
-            else
-            {
-                std::ranges::advance(text_left,  1);
-                hash_full();
-            }
+            hash_roll_forward();
+            // if (shape_all)
+            // {
+            //     hash_roll_forward();
+            // }
+            // else
+            // {
+            //     std::ranges::advance(text_left,  1);
+            //     hash_full();
+            // }
         }
 
         /*!\brief Increments iterator by `skip`.
@@ -456,8 +478,10 @@ private:
 
             for (size_t i{0}; i < shape_.size() - 1u; ++i)
             {
-                hash_value += shape_[i] * to_rank(*text_right);
-                hash_value *= shape_[i] ? sigma : 1;
+                // hash_value += shape_[i] * to_rank(*text_right);
+                hash_value += to_rank(*text_right);
+                // hash_value *= shape_[i] ? sigma : 1;
+                hash_value *= sigma;
                 std::ranges::advance(text_right, 1);
             }
         }
@@ -465,20 +489,12 @@ private:
         //!\brief Calculates the next hash value via rolling hash.
         void hash_roll_forward()
         {
-            // hash_value -= to_rank(*(text_left)) * roll_factor;
-            // hash_value += to_rank(*(text_right));
-            // hash_value *= sigma;
-            calc_hash();
-
-            std::ranges::advance(text_left,  1);
-            std::ranges::advance(text_right, 1);
-        }
-
-        void calc_hash()
-        {
             hash_value -= to_rank(*(text_left)) * roll_factor;
             hash_value += to_rank(*(text_right));
             hash_value *= sigma;
+
+            std::ranges::advance(text_left,  1);
+            std::ranges::advance(text_right, 1);
         }
 
         /*!\brief Calculates the previous hash value via rolling hash.
