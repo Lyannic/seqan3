@@ -147,6 +147,17 @@ private:
                 shape_mask += shape_[shape_.size() - 1u];
                 shape_mask *= 2;
                 shape_mask += shape_[shape_.size() - 1u];
+
+                //precalculating the shift factors
+                // for (size_t i{0}; i < shape_.size(); ++i)
+                // {
+                //     if (shape_[i])
+                //     {
+                //         //TODO replace with log2(sigma)^(2 * (shape.size() - i - 1))
+                //         shift_factors[i] = 2 * (shape_.size() - i - 1);
+                //         // shift_factors[i] = std::pow(2, 2 * (shape_.size() - i - 1));
+                //     }
+                // }
             }
 
             hash_full();
@@ -384,7 +395,17 @@ private:
             {
                 return hash_value + to_rank(*text_right);
             }
-            return (hash_value + to_rank(*text_right)) & shape_mask;
+            size_t final_hash = 0;
+            size_t intermediate_hash_value = hash_value + to_rank(*text_right);
+            for (size_t i{0}; i < shape_.size(); ++i)
+            {  
+                if (shape_[i]) {
+                    final_hash *= 4;
+                    final_hash += (intermediate_hash_value >> (2 * (shape_.size() - i - 1))) & 3;
+                }
+            }
+            return final_hash;
+            // return (hash_value + to_rank(*text_right)) & shape_mask;
         }
 
     private:
@@ -404,6 +425,8 @@ private:
         shape shape_;
 
         size_t shape_mask{0};
+
+        // size_t shift_factors[30];
 
         bool shape_all;
 
