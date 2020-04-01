@@ -12,10 +12,13 @@
 #include <seqan3/range/views/kmer_nthash.hpp>
 #include <seqan3/range/views/kmer_gapped_hash.hpp>
 #include <seqan3/range/views/kmer_gapped_perfect_hash.hpp>
+#include <seqan3/range/views/kmer_issh_hash.hpp>
+#include <seqan3/range/views/kmer_issh_hash_with_precomputations.hpp>
 #include <seqan3/range/views/to_char.hpp>
 #include <seqan3/test/performance/sequence_generator.hpp>
 #include <seqan3/test/performance/naive_kmer_hash.hpp>
 #include <seqan3/test/performance/units.hpp>
+#include <seqan3/contrib/issh/SpacedQmer.hpp>
 
 #ifdef SEQAN3_HAS_SEQAN2
     #include <seqan/index.h>
@@ -175,6 +178,68 @@ static void seqan_kmer_gapped_perfect_hash_gapped(benchmark::State & state)
     state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
 }
 
+static void seqan_kmer_issh_hash_gapped(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+
+    auto shape = make_gapped_shape(k);
+
+    std::string shape_string = "";
+    for (size_t i{0}; i < shape.size() - 1u; ++i)
+    {
+        if (shape[i])
+        {
+            shape_string += "1";
+        } else
+        {
+            shape_string += "0";
+        }
+    }
+    if (shape[shape.size() - 1u])
+    {
+        shape_string += "1";
+    }
+    else 
+    {
+        shape_string += "0";
+    }
+
+    auto spaced_qmer = SpacedQmer(shape_string, 0);
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        for (auto h : seq | views::kmer_issh_hash(shape, spaced_qmer))
+            benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
+static void seqan_kmer_issh_hash_gapped_with_precomputations(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        for (auto h : seq | views::kmer_issh_hash_with_precomputations(make_gapped_shape(k)))
+            benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
 static void naive_kmer_hash(benchmark::State & state)
 {
     auto sequence_length = state.range(0);
@@ -267,6 +332,8 @@ BENCHMARK(nthash_ungapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_gapped_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_gapped_perfect_hash_gapped)->Apply(arguments);
+BENCHMARK(seqan_kmer_issh_hash_gapped)->Apply(arguments);
+BENCHMARK(seqan_kmer_issh_hash_gapped_with_precomputations)->Apply(arguments);
 BENCHMARK(naive_kmer_hash)->Apply(arguments);
 
 BENCHMARK_MAIN();
