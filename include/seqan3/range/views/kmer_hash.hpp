@@ -135,6 +135,12 @@ private:
 
             roll_factor = std::pow(sigma, std::ranges::size(shape_) - 1);
 
+            for (size_t i{0}; i < shape_.size() - 1u; ++i)
+            {
+                delete_mask <<= 2;
+                delete_mask += 3;
+            }
+
             // if(!shape_all) 
             // {
             //     for (size_t i{0}; i < shape_.size() - 1u; ++i)
@@ -434,6 +440,8 @@ private:
         //!\brief The shape to use.
         shape shape_;
 
+        size_t delete_mask{0};
+
         // size_t shape_mask{0};
 
         // size_t shift_factors[30];
@@ -522,7 +530,8 @@ private:
         //!\brief Calculates the next hash value via rolling hash.
         void hash_roll_forward()
         {
-            hash_value -= to_rank(*(text_left)) * roll_factor;
+            hash_value &= delete_mask;
+            // hash_value -= to_rank(*(text_left)) * roll_factor;
             hash_value += to_rank(*(text_right));
             hash_value *= sigma;
 
