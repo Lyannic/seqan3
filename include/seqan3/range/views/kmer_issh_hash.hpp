@@ -56,7 +56,9 @@ private:
     //!\brief The shape to use.
     shape shape_;
 
-    SpacedQmer spaced_qmer_;
+    V_V_PreviusShift V_shifts;
+
+    Position pos_one;
 
     /*!\brief Iterator for calculating hash values via a given seqan3::shape.
      * \tparam urng_t Type of the text. Must model std::forward_range. Reference type must model seqan3::semialphabet.
@@ -132,8 +134,8 @@ private:
         *
         * Linear in size of shape.
         */
-        shape_iterator(it_t it_start, shape s_, SpacedQmer const & s_qmer_) :
-            shape_{s_}, text_left{it_start}, text_right{it_start}
+        shape_iterator(it_t it_start, shape s_, V_V_PreviusShift const & _V_shifts, Position const & _pos_one) :
+            shape_{s_}, text_left{it_start}, text_right{it_start}, V_shifts(_V_shifts), pos_one(_pos_one)
         {
             assert(std::ranges::size(shape_) > 0);
 
@@ -164,8 +166,8 @@ private:
                 count_relevant_positions++;
             }
 
-            V_shifts = s_qmer_.GetMultipleShifts();
-            pos_one = s_qmer_.GetPosOne();
+            // V_shifts = s_qmer_.GetMultipleShifts();
+            // pos_one = s_qmer_.GetPosOne();
             hash_full();
             hash_values.push_back(hash_value);
         }
@@ -663,7 +665,7 @@ public:
      * \throws std::invalid_argument if hashes resulting from the shape/alphabet combination cannot be represented in
      *         `uint64_t`, i.e. \f$s>\frac{64}{\log_2\sigma}\f$ with shape size \f$s\f$ and alphabet size \f$\sigma\f$.
      */
-    kmer_issh_hash_view(urng_t urange_, shape const & s_, SpacedQmer const & s_qmer_) : urange{std::move(urange_)}, shape_{s_}, spaced_qmer_(s_qmer_)
+    kmer_issh_hash_view(urng_t urange_, shape const & s_, V_V_PreviusShift const & _V_shifts, Position const & _pos_one) : urange{std::move(urange_)}, shape_{s_}, V_shifts(_V_shifts), pos_one(_pos_one)
     {
         if (shape_.size() > (64 / std::log2(alphabet_size<reference_t<urng_t>>)))
         {
@@ -682,8 +684,8 @@ public:
               std::ranges::viewable_range<rng_t> &&
               std::constructible_from<urng_t, ranges::ref_view<std::remove_reference_t<rng_t>>>
     //!\endcond
-    kmer_issh_hash_view(rng_t && urange_, shape const & s_, SpacedQmer const & s_qmer_) :
-        urange{std::views::all(std::forward<rng_t>(urange_))}, shape_{s_}, spaced_qmer_(s_qmer_)
+    kmer_issh_hash_view(rng_t && urange_, shape const & s_, V_V_PreviusShift const & _V_shifts, Position const & _pos_one) :
+        urange{std::views::all(std::forward<rng_t>(urange_))}, shape_{s_}, V_shifts(_V_shifts), pos_one(_pos_one)
     {
         if (shape_.size() > (64 / std::log2(alphabet_size<reference_t<urng_t>>)))
         {
@@ -711,7 +713,7 @@ public:
      */
     auto begin() noexcept
     {
-        return shape_iterator<urng_t>{std::ranges::begin(urange), shape_, spaced_qmer_};
+        return shape_iterator<urng_t>{std::ranges::begin(urange), shape_, V_shifts, pos_one};
     }
 
     //!\copydoc begin()
@@ -720,7 +722,7 @@ public:
         requires const_iterable_range<urng_t>
     //!\endcond
     {
-        return shape_iterator<urng_t const>{std::ranges::begin(urange), shape_, spaced_qmer_};
+        return shape_iterator<urng_t const>{std::ranges::begin(urange), shape_, V_shifts, pos_one};
     }
 
     //!\copydoc begin()
@@ -774,7 +776,7 @@ public:
 
 //!\brief A deduction guide for the view class template.
 template <std::ranges::viewable_range rng_t>
-kmer_issh_hash_view(rng_t &&, shape const & shape_, SpacedQmer const & spaced_qmer_) -> kmer_issh_hash_view<std::ranges::all_view<rng_t>>;
+kmer_issh_hash_view(rng_t &&, shape const & shape_, V_V_PreviusShift const & V_shifts, Position const & pos_pne) -> kmer_issh_hash_view<std::ranges::all_view<rng_t>>;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // kmer_issh_hash_fn (adaptor definition)
@@ -785,9 +787,9 @@ kmer_issh_hash_view(rng_t &&, shape const & shape_, SpacedQmer const & spaced_qm
 struct kmer_issh_hash_fn
 {
     //!\brief Store the shape and return a range adaptor closure object.
-    auto operator()(shape const & shape_, SpacedQmer const & spaced_qmer_) const
+    auto operator()(shape const & shape_, V_V_PreviusShift const & V_shifts, Position const & pos_one) const
     {
-        return adaptor_from_functor{*this, shape_, spaced_qmer_};
+        return adaptor_from_functor{*this, shape_, V_shifts, pos_one};
     }
 
     /*!\brief            Call the view's constructor with the underlying view and a seqan3::shape as argument.
@@ -798,7 +800,7 @@ struct kmer_issh_hash_fn
      * \returns          A range of converted elements.
      */
     template <std::ranges::range urng_t>
-    constexpr auto operator()(urng_t && urange, shape const & shape_, SpacedQmer const & spaced_qmer_) const
+    constexpr auto operator()(urng_t && urange, shape const & shape_, V_V_PreviusShift const & V_shifts, Position const & pos_one) const
     {
         static_assert(std::ranges::viewable_range<urng_t>,
             "The range parameter to views::kmer_issh_hash cannot be a temporary of a non-view range.");
@@ -807,7 +809,7 @@ struct kmer_issh_hash_fn
         static_assert(semialphabet<reference_t<urng_t>>,
             "The range parameter to views::kmer_issh_hash must be over elements of seqan3::semialphabet.");
 
-        return kmer_issh_hash_view{std::forward<urng_t>(urange), shape_, spaced_qmer_};
+        return kmer_issh_hash_view{std::forward<urng_t>(urange), shape_, V_shifts, pos_one};
     }
 };
 //![adaptor_def]
