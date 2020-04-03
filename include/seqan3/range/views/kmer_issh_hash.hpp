@@ -442,10 +442,6 @@ private:
 
         std::vector<size_t> hash_values;
 
-        V_V_PreviusShift V_shifts;
-
-        Position pos_one;
-
         size_t delete_mask{0};
 
         size_t count_relevant_positions{0};
@@ -469,6 +465,10 @@ private:
 
         //!\brief Iterator to the rightmost position of the k-mer.
         it_t text_right;
+
+        V_V_PreviusShift V_shifts;
+
+        Position pos_one;
 
         //!\brief Increments iterator by 1.
         void hash_forward()
