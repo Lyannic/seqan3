@@ -141,31 +141,16 @@ private:
                 delete_mask += 3;
             }
 
-            // if(!shape_all) 
-            // {
-            //     for (size_t i{0}; i < shape_.size() - 1u; ++i)
-            //     {
-            //         shape_mask += shape_[i];
-            //         shape_mask *= 2;
-            //         shape_mask += shape_[i];
-            //         shape_mask *= 2;
-            //     }
-            //     shape_mask += shape_[shape_.size() - 1u];
-            //     shape_mask *= 2;
-            //     shape_mask += shape_[shape_.size() - 1u];
-
-            //     //precalculating the shift factors
-            //     // for (size_t i{0}; i < shape_.size(); ++i)
-            //     // {
-            //     //     if (shape_[i])
-            //     //     {
-            //     //         //TODO replace with log2(sigma)^(2 * (shape.size() - i - 1))
-            //     //         shift_factors[i] = 2 * (shape_.size() - i - 1);
-            //     //         // shift_factors[i] = std::pow(2, 2 * (shape_.size() - i - 1));
-            //     //     }
-            //     // }
-            // }
-
+            if(!shape_all) 
+            {
+                for (size_t i{1}; i < shape_.size() - 1u; ++i)
+                {
+                    if(shape_[i])
+                    {
+                        count_relevant++;
+                    }
+                }
+            }
             hash_full();
         }
         //!\}
@@ -442,6 +427,10 @@ private:
 
         size_t delete_mask{0};
 
+        size_t count_relevant{2};
+
+        size_t count_added{0};
+
         // size_t shape_mask{0};
 
         // size_t shift_factors[30];
@@ -517,11 +506,18 @@ private:
             text_right = text_left;
             hash_value = 0;
 
+            count_added = 0;
             for (size_t i{0}; i < shape_.size() - 1u; ++i)
             {
-                hash_value += shape_[i] * to_rank(*text_right);
+                if (shape_[i])
+                {
+                    hash_value |= to_rank(*text_right) << ((count_relevant - 1 - count_added) * 2);
+                    count_added++;
+                }
+                // hash_value += shape_[i] * to_rank(*text_right);
                 // hash_value += to_rank(*text_right);
-                hash_value *= shape_[i] ? sigma : 1;
+                // hash_value <<= 2;
+                // hash_value *= shape_[i] ? sigma : 1;
                 // hash_value *= sigma;
                 std::ranges::advance(text_right, 1);
             }
