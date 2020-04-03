@@ -13,7 +13,7 @@
 #include <seqan3/range/views/kmer_gapped_hash.hpp>
 #include <seqan3/range/views/kmer_gapped_perfect_hash.hpp>
 #include <seqan3/range/views/kmer_issh_hash.hpp>
-#include <seqan3/range/views/kmer_issh_hash_with_precomputations.hpp>
+#include <seqan3/range/views/kmer_issh_precomp_hash.hpp>
 #include <seqan3/range/views/to_char.hpp>
 #include <seqan3/test/performance/sequence_generator.hpp>
 #include <seqan3/test/performance/naive_kmer_hash.hpp>
@@ -214,7 +214,7 @@ static void seqan_kmer_issh_hash_gapped(benchmark::State & state)
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_issh_hash(shape, spaced_qmer))
+        for (auto h : seq | views::kmer_issh_hash(shape, spaced_qmer.GetMultipleShifts(), spaced_qmer.GetPosOne()))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -233,7 +233,7 @@ static void seqan_kmer_issh_hash_gapped_with_precomputations(benchmark::State & 
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_issh_hash_with_precomputations(make_gapped_shape(k)))
+        for (auto h : seq | views::kmer_issh_precomp_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
