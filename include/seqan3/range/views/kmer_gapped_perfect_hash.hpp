@@ -135,6 +135,33 @@ private:
 
             roll_factor = std::pow(sigma, std::ranges::size(shape_) - 1);
 
+            for (size_t i{0}; i < shape_.size(); ++i)
+            {  
+                if(!shape_[i])
+                {
+                    continue;
+                }
+                size_t consecutives = 0;
+                size_t select_mask = 3;
+                for(size_t j{i+1u}; j < shape_.size(); ++j)
+                {
+                    if(shape_[j])
+                    {
+                        consecutives++;
+                        select_mask << 2;
+                        select_mask += 3;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                shift_factors.push_back((2 * (shape_.size() - i - 1)));
+                select_masks.push_back(select_mask);
+                init_shift_factors.push_back(2 * (consecutives + 1));
+                i += consecutives;
+            }
+
             hash_full();
         }
         //!\}
@@ -372,12 +399,10 @@ private:
             }
             size_t final_hash = 0;
             size_t intermediate_hash_value = hash_value + to_rank(*text_right);
-            for (size_t i{0}; i < shape_.size(); ++i)
+            for (size_t i{0}; i < select_masks.size(); ++i)
             {  
-                if (shape_[i]) {
-                    final_hash *= 4;
-                    final_hash += (intermediate_hash_value >> (2 * (shape_.size() - i - 1))) & 3;
-                }
+                final_hash <<= init_shift_factors[i];
+                final_hash += (intermediate_hash_value >> shift_factors[i]) & select_masks[i];
             }
             return final_hash;
         }
@@ -399,6 +424,14 @@ private:
         shape shape_;
 
         size_t shape_mask{0};
+
+        size_t count_added{0};
+
+        std::vector<size_t> select_masks;
+
+        std::vector<size_t> shift_factors;
+
+        std::vector<size_t> init_shift_factors;
 
         bool shape_all;
 
@@ -471,12 +504,16 @@ private:
             text_right = text_left;
             hash_value = 0;
 
+            count_added = 0;
             for (size_t i{0}; i < shape_.size() - 1u; ++i)
             {
+                hash_value |= to_rank(*text_right) << ((shape_.size() - 1 - count_added) * 2);
+                count_added++;
                 // hash_value += shape_[i] * to_rank(*text_right);
-                hash_value += to_rank(*text_right);
+                // hash_value += to_rank(*text_right);
+                // hash_value <<= 2;
                 // hash_value *= shape_[i] ? sigma : 1;
-                hash_value *= sigma;
+                // hash_value *= sigma;
                 std::ranges::advance(text_right, 1);
             }
         }
