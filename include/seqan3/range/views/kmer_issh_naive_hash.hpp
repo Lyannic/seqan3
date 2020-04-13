@@ -167,6 +167,7 @@ private:
             // }
 
             hash_full();
+            hash_values.push_back(hash_value);
         }
         //!\}
 
@@ -435,6 +436,8 @@ private:
         //!\brief The hash value.
         size_t hash_value{0};
 
+        std::vector<size_t> hash_values;
+
         //!\brief The factor for the left most position of the hash value.
         size_t roll_factor{0};
 
@@ -470,6 +473,7 @@ private:
                 std::ranges::advance(text_left,  1);
                 hash_full();
             }
+            hash_values.push_back(hash_value);
         }
 
         /*!\brief Increments iterator by `skip`.
