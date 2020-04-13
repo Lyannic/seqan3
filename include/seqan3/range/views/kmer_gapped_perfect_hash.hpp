@@ -148,7 +148,7 @@ private:
                     if(shape_[j])
                     {
                         consecutives++;
-                        select_mask << 2;
+                        select_mask <<= 2;
                         select_mask += 3;
                     }
                     else
@@ -156,7 +156,7 @@ private:
                         break;
                     }
                 }
-                shift_factors.push_back((2 * (shape_.size() - i - 1)));
+                shift_factors.push_back((2 * (shape_.size() - i - 1 - consecutives)));
                 select_masks.push_back(select_mask);
                 init_shift_factors.push_back(2 * (consecutives + 1));
                 i += consecutives;
