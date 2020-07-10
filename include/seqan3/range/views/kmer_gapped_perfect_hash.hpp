@@ -423,10 +423,6 @@ private:
         //!\brief The shape to use.
         shape shape_;
 
-        size_t shape_mask{0};
-
-        size_t count_added{0};
-
         std::vector<size_t> select_masks;
 
         std::vector<size_t> shift_factors;
@@ -504,16 +500,10 @@ private:
             text_right = text_left;
             hash_value = 0;
 
-            count_added = 0;
             for (size_t i{0}; i < shape_.size() - 1u; ++i)
             {
-                hash_value |= to_rank(*text_right) << ((shape_.size() - 1 - count_added) * 2);
-                count_added++;
-                // hash_value += shape_[i] * to_rank(*text_right);
-                // hash_value += to_rank(*text_right);
-                // hash_value <<= 2;
-                // hash_value *= shape_[i] ? sigma : 1;
-                // hash_value *= sigma;
+                hash_value += shape_[i] * to_rank(*text_right);
+                hash_value *= shape_[i] ? sigma : 1;
                 std::ranges::advance(text_right, 1);
             }
         }

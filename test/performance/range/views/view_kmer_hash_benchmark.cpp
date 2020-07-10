@@ -9,9 +9,12 @@
 
 #include <seqan3/alphabet/nucleotide/dna4.hpp>
 #include <seqan3/range/views/kmer_hash.hpp>
+#include <seqan3/range/views/kmer_delete_mask_hash.hpp>
 #include <seqan3/range/views/kmer_nthash.hpp>
 #include <seqan3/range/views/kmer_gapped_hash.hpp>
+#include <seqan3/range/views/kmer_gapped_delete_mask_hash.hpp>
 #include <seqan3/range/views/kmer_gapped_perfect_hash.hpp>
+#include <seqan3/range/views/kmer_gapped_delete_mask_perfect_hash.hpp>
 #include <seqan3/range/views/kmer_issh_hash.hpp>
 #include <seqan3/range/views/kmer_issh_precomp_hash.hpp>
 #include <seqan3/range/views/to_char.hpp>
@@ -70,6 +73,25 @@ static void seqan_kmer_hash_ungapped(benchmark::State & state)
     for (auto _ : state)
     {
         for (auto h : seq | views::kmer_hash(ungapped{static_cast<uint8_t>(k)}))
+            benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
+static void seqan_kmer_delete_mask_hash_ungapped(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        for (auto h : seq | views::kmer_delete_mask_hash(ungapped{static_cast<uint8_t>(k)}))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -159,6 +181,25 @@ static void seqan_kmer_gapped_hash_gapped(benchmark::State & state)
     state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
 }
 
+static void seqan_kmer_gapped_delete_mask_hash_gapped(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        for (auto h : seq | views::kmer_gapped_delete_mask_hash(make_gapped_shape(k)))
+            benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
 static void seqan_kmer_gapped_perfect_hash_gapped(benchmark::State & state)
 {
     auto sequence_length = state.range(0);
@@ -172,6 +213,25 @@ static void seqan_kmer_gapped_perfect_hash_gapped(benchmark::State & state)
     for (auto _ : state)
     {
         for (auto h : seq | views::kmer_gapped_perfect_hash(make_gapped_shape(k)))
+            benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
+static void seqan_kmer_gapped_delete_mask_perfect_hash_gapped(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        for (auto h : seq | views::kmer_gapped_delete_mask_perfect_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -327,11 +387,14 @@ BENCHMARK(seqan2_kmer_hash_gapped)->Apply(arguments);
 #endif // SEQAN3_HAS_SEQAN2
 
 BENCHMARK(seqan_kmer_hash_ungapped)->Apply(arguments);
+BENCHMARK(seqan_kmer_delete_mask_hash_ungapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_nthash_ungapped)->Apply(arguments);
 BENCHMARK(nthash_ungapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_gapped_hash_gapped)->Apply(arguments);
+BENCHMARK(seqan_kmer_gapped_delete_mask_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_gapped_perfect_hash_gapped)->Apply(arguments);
+BENCHMARK(seqan_kmer_gapped_delete_mask_perfect_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_issh_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_issh_hash_gapped_with_precomputations)->Apply(arguments);
 BENCHMARK(naive_kmer_hash)->Apply(arguments);

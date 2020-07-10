@@ -17,7 +17,6 @@
 #include <seqan3/alphabet/concept.hpp>
 #include <seqan3/range/hash.hpp>
 #include <seqan3/search/kmer_index/shape.hpp>
-#include <seqan3/core/debug_stream.hpp>
 
 namespace seqan3::detail
 {
@@ -131,26 +130,8 @@ private:
         {
             assert(std::ranges::size(shape_) > 0);
 
-            shape_all = shape_.all();
-
             roll_factor = std::pow(sigma, std::ranges::size(shape_) - 1);
 
-            for (size_t i{0}; i < shape_.size() - 1u; ++i)
-            {
-                delete_mask <<= 2;
-                delete_mask += 3;
-            }
-
-            if(!shape_all) 
-            {
-                for (size_t i{1}; i < shape_.size() - 1u; ++i)
-                {
-                    if(shape_[i])
-                    {
-                        count_relevant++;
-                    }
-                }
-            }
             hash_full();
         }
         //!\}
@@ -383,30 +364,6 @@ private:
         value_type operator*() const noexcept
         {
             return hash_value + to_rank(*text_right);
-            // if(shape_all) 
-            // {
-            // }
-            // //int final_hash = 0;
-            // // for (i = 0; i < shape.size(); i++) {
-            // //     if(shape[i]) {
-            // //         int pickoutMask = 0;
-            // //         pickoutMask += 3;
-            // //         pickoutMask *= log2(sigma)^(2 * (shape.size() - i - 1));
-            // //         final_hash *= log2(sigma)^2
-            // //         final_hash += hash_value & pickoutMask
-            // //     }
-            // // }
-            // size_t final_hash = 0;
-            // size_t intermediate_hash_value = hash_value + to_rank(*text_right);
-            // for (size_t i{0}; i < shape_.size(); ++i)
-            // {  
-            //     if (shape_[i]) {
-            //         final_hash *= 4;
-            //         final_hash += (intermediate_hash_value >> (2 * (shape_.size() - i - 1))) & 3;
-            //     }
-            // }
-            // return final_hash;
-            // // return (hash_value + to_rank(*text_right)) & shape_mask;
         }
 
     private:
@@ -425,18 +382,6 @@ private:
         //!\brief The shape to use.
         shape shape_;
 
-        size_t delete_mask{0};
-
-        size_t count_relevant{2};
-
-        size_t count_added{0};
-
-        // size_t shape_mask{0};
-
-        // size_t shift_factors[30];
-
-        bool shape_all;
-
         //!\brief Iterator to the leftmost position of the k-mer.
         it_t text_left;
 
@@ -446,8 +391,7 @@ private:
         //!\brief Increments iterator by 1.
         void hash_forward()
         {
-            // hash_roll_forward();
-            if (shape_all)
+            if (shape_.all())
             {
                 hash_roll_forward();
             }
@@ -506,19 +450,10 @@ private:
             text_right = text_left;
             hash_value = 0;
 
-            count_added = 0;
             for (size_t i{0}; i < shape_.size() - 1u; ++i)
             {
-                if (shape_[i])
-                {
-                    hash_value |= to_rank(*text_right) << ((count_relevant - 1 - count_added) * 2);
-                    count_added++;
-                }
-                // hash_value += shape_[i] * to_rank(*text_right);
-                // hash_value += to_rank(*text_right);
-                // hash_value <<= 2;
-                // hash_value *= shape_[i] ? sigma : 1;
-                // hash_value *= sigma;
+                hash_value += shape_[i] * to_rank(*text_right);
+                hash_value *= shape_[i] ? sigma : 1;
                 std::ranges::advance(text_right, 1);
             }
         }
@@ -526,8 +461,7 @@ private:
         //!\brief Calculates the next hash value via rolling hash.
         void hash_roll_forward()
         {
-            hash_value &= delete_mask;
-            // hash_value -= to_rank(*(text_left)) * roll_factor;
+            hash_value -= to_rank(*(text_left)) * roll_factor;
             hash_value += to_rank(*(text_right));
             hash_value *= sigma;
 
