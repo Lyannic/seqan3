@@ -16,6 +16,7 @@
 #include <seqan3/range/views/kmer_gapped_perfect_hash.hpp>
 #include <seqan3/range/views/kmer_gapped_delete_mask_perfect_hash.hpp>
 #include <seqan3/range/views/kmer_issh_hash.hpp>
+#include <seqan3/range/views/kmer_issh_naive_hash.hpp>
 #include <seqan3/range/views/kmer_issh_precomp_hash.hpp>
 #include <seqan3/range/views/to_char.hpp>
 #include <seqan3/test/performance/sequence_generator.hpp>
@@ -298,6 +299,25 @@ static void seqan_kmer_issh_hash_gapped_with_precomputations(benchmark::State & 
     state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
 }
 
+static void seqan_kmer_issh_naive_hash_gapped(benchmark::State & state)
+{
+    auto sequence_length = state.range(0);
+    assert(sequence_length > 0);
+    size_t k = static_cast<size_t>(state.range(1));
+    assert(k > 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+
+    volatile size_t sum{0};
+
+    for (auto _ : state)
+    {
+        for (auto h : seq | seqan3::views::kmer_issh_naive_hash(make_gapped_shape(k)))
+            benchmark::DoNotOptimize(sum += h);
+    }
+
+    state.counters["Throughput[bp/s]"] = bp_per_second(sequence_length - k + 1);
+}
+
 static void naive_kmer_hash(benchmark::State & state)
 {
     auto sequence_length = state.range(0);
@@ -395,6 +415,7 @@ BENCHMARK(seqan_kmer_gapped_perfect_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_gapped_delete_mask_perfect_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_issh_hash_gapped)->Apply(arguments);
 BENCHMARK(seqan_kmer_issh_hash_gapped_with_precomputations)->Apply(arguments);
+BENCHMARK(seqan_kmer_issh_naive_hash_gapped)->Apply(arguments);
 BENCHMARK(naive_kmer_hash)->Apply(arguments);
 
 BENCHMARK_MAIN();

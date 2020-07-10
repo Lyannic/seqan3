@@ -284,15 +284,15 @@ public:
     {
         assert(std::ranges::size(shape_) > 0);
 
-        for (size_t i{0}; i < shape_.size() - 1u; ++i)
-        {
-            delete_mask <<= 2;
-            delete_mask += 3;
-        }
-
         if (shape_.size() <= std::ranges::distance(text_left, text_right))
         {
             roll_factor = pow(sigma, static_cast<size_t>(std::ranges::size(shape_) - 1));
+
+            for (size_t i{0}; i < shape_.size() - 1u; ++i)
+            {
+                delete_mask <<= 2;
+                delete_mask += 3;
+            }
 
             hash_full();
         }
