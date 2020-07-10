@@ -83,13 +83,13 @@ static void seqan_kmer_delete_mask_hash_ungapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_delete_mask_hash(ungapped{static_cast<uint8_t>(k)}))
+        for (auto h : seq | seqan3::views::kmer_delete_mask_hash(seqan3::ungapped{static_cast<uint8_t>(k)}))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -102,13 +102,13 @@ static void seqan_kmer_nthash_ungapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_nthash(ungapped{static_cast<uint8_t>(k)}))
+        for (auto h : seq | seqan3::views::kmer_nthash(seqan3::ungapped{static_cast<uint8_t>(k)}))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -121,8 +121,8 @@ static void nthash_ungapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto generatedSeq = test::generate_sequence<dna4>(sequence_length, 0, 0);
-    auto genereatedSeqVec = generatedSeq | views::to_char;
+    auto generatedSeq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
+    auto genereatedSeqVec = generatedSeq | seqan3::views::to_char;
     std::string seq(genereatedSeqVec.begin(), genereatedSeqVec.end());
 
     volatile size_t sum{0};
@@ -166,13 +166,13 @@ static void seqan_kmer_gapped_hash_gapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_gapped_hash(make_gapped_shape(k)))
+        for (auto h : seq | seqan3::views::kmer_gapped_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -185,13 +185,13 @@ static void seqan_kmer_gapped_delete_mask_hash_gapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_gapped_delete_mask_hash(make_gapped_shape(k)))
+        for (auto h : seq | seqan3::views::kmer_gapped_delete_mask_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -204,13 +204,13 @@ static void seqan_kmer_gapped_perfect_hash_gapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_gapped_perfect_hash(make_gapped_shape(k)))
+        for (auto h : seq | seqan3::views::kmer_gapped_perfect_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -223,13 +223,13 @@ static void seqan_kmer_gapped_delete_mask_perfect_hash_gapped(benchmark::State &
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_gapped_delete_mask_perfect_hash(make_gapped_shape(k)))
+        for (auto h : seq | seqan3::views::kmer_gapped_delete_mask_perfect_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -242,7 +242,7 @@ static void seqan_kmer_issh_hash_gapped(benchmark::State & state)
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     auto shape = make_gapped_shape(k);
 
@@ -272,7 +272,7 @@ static void seqan_kmer_issh_hash_gapped(benchmark::State & state)
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_issh_hash(shape, spaced_qmer.GetMultipleShifts(), spaced_qmer.GetPosOne()))
+        for (auto h : seq | seqan3::views::kmer_issh_hash(shape, spaced_qmer.GetMultipleShifts(), spaced_qmer.GetPosOne()))
             benchmark::DoNotOptimize(sum += h);
     }
 
@@ -285,13 +285,13 @@ static void seqan_kmer_issh_hash_gapped_with_precomputations(benchmark::State & 
     assert(sequence_length > 0);
     size_t k = static_cast<size_t>(state.range(1));
     assert(k > 0);
-    auto seq = test::generate_sequence<dna4>(sequence_length, 0, 0);
+    auto seq = seqan3::test::generate_sequence<seqan3::dna4>(sequence_length, 0, 0);
 
     volatile size_t sum{0};
 
     for (auto _ : state)
     {
-        for (auto h : seq | views::kmer_issh_precomp_hash(make_gapped_shape(k)))
+        for (auto h : seq | seqan3::views::kmer_issh_precomp_hash(make_gapped_shape(k)))
             benchmark::DoNotOptimize(sum += h);
     }
 
