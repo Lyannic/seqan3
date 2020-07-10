@@ -135,8 +135,6 @@ private:
         {
             assert(std::ranges::size(shape_) > 0);
 
-            shape_all = shape_.all();
-
             roll_factor = std::pow(sigma, std::ranges::size(shape_) - 1);
 
             for (size_t i{0}; i < shape_.size(); ++i)
@@ -419,7 +417,7 @@ private:
         {
             // return hash_value + to_rank(*text_right);
             return hash_value;
-            // if(shape_all) 
+            // if(shape_.all()) 
             // {
             // }
             // //int final_hash = 0;
@@ -475,8 +473,6 @@ private:
 
         // size_t shift_factors[30];
 
-        bool shape_all;
-
         //!\brief Iterator to the leftmost position of the k-mer.
         it_t text_left;
 
@@ -491,7 +487,7 @@ private:
         void hash_forward()
         {
             // hash_roll_forward();
-            if (shape_all)
+            if (shape_.all())
             {
                 hash_roll_forward();
             }

@@ -135,7 +135,6 @@ private:
             assert(std::ranges::size(shape_) > 0);
 
             shape_size = shape_.size();
-            shape_all = shape_.all();
 
             hash_full();
         }
@@ -390,8 +389,6 @@ private:
 
         unsigned shape_size;
 
-        bool shape_all;
-
         //!\brief Iterator to the leftmost position of the k-mer.
         it_t text_left;
 
@@ -401,7 +398,7 @@ private:
         //!\brief Increments iterator by 1.
         void hash_forward()
         {
-            if (shape_all)
+            if (shape_.all())
             {
                 hash_roll_forward();
             }
