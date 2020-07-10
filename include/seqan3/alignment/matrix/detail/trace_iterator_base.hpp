@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ namespace seqan3::detail
  * \tparam derived_t The derived iterator type.
  * \tparam matrix_iter_t The wrapped matrix iterator; must model seqan3::detail::two_dimensional_matrix_iterator and
  *                       the iterator's value type must be the same as seqan3::detail::trace_directions, i.e.
- *                       `std::same_as<value_type_t<matrix_iter_t>, trace_directions>` must evaluate to `true`.
+ *                       `std::same_as<std::iter_value_t<matrix_iter_t>, trace_directions>` must evaluate to `true`.
  *
  * \details
  *
@@ -62,11 +62,11 @@ template <typename derived_t, two_dimensional_matrix_iterator matrix_iter_t>
 class trace_iterator_base
 {
 private:
-    static_assert(std::same_as<value_type_t<matrix_iter_t>, trace_directions>,
+    static_assert(std::same_as<std::iter_value_t<matrix_iter_t>, trace_directions>,
                   "Value type of the underlying iterator must be seqan3::detail::trace_directions.");
 
     //!\brief Befriend with corresponding const_iterator.
-    template <typename other_derived_t, typename other_matrix_iter_t>
+    template <typename other_derived_t, two_dimensional_matrix_iterator other_matrix_iter_t>
     //!\cond
         requires std::constructible_from<derived_t, other_derived_t> &&
                  std::constructible_from<matrix_iter_t, other_matrix_iter_t>

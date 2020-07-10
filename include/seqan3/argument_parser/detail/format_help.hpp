@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -17,11 +17,9 @@
 #include <cassert>
 #include <iostream>
 
-#include <range/v3/view/repeat_n.hpp>
-
 #include <seqan3/argument_parser/detail/format_base.hpp>
-#include <seqan3/core/detail/debug_stream_type.hpp>
-#include <seqan3/core/detail/terminal.hpp>
+#include <seqan3/argument_parser/detail/terminal.hpp>
+#include <seqan3/core/detail/test_accessor.hpp>
 #include <seqan3/version.hpp>
 
 namespace seqan3::detail
@@ -44,7 +42,6 @@ class format_help : public format_help_base<format_help>
 
     //!\brief Befriend the base class to give access to the private member functions.
     friend base_type;
-
 public:
     /*!\name Constructors, destructor and assignment
      * \{
@@ -67,34 +64,34 @@ protected:
     struct console_layout_struct
     {
         //!\brief The screen width.
-        unsigned screenWidth;
+        uint32_t screenWidth;
         //!\brief The default screen width.
-        unsigned defaultScreenWidth;
+        uint32_t defaultScreenWidth;
         //!\brief The maximal screen width.
-        unsigned maximalScreenWidth;
+        uint32_t maximalScreenWidth;
         //!\brief The minimal screen width.
-        unsigned minimalScreenWidth;
+        uint32_t minimalScreenWidth;
         //!\brief The left Padding.
-        unsigned leftPadding;
+        uint32_t leftPadding;
         //!\brief The center Padding.
-        unsigned centerPadding;
+        uint32_t centerPadding;
         //!\brief The right Padding.
-        unsigned rightPadding;
+        uint32_t rightPadding;
         //!\brief The left Column Width.
-        unsigned leftColumnWidth;
+        uint32_t leftColumnWidth;
         //!\brief The right Column Width.
-        unsigned rightColumnWidth;
+        uint32_t rightColumnWidth;
         //!\brief The right Column Tab.
-        unsigned rightColumnTab;
+        uint32_t rightColumnTab;
 
         //!\brief The constructor.
-        console_layout_struct() :
+        //!\param[in] terminal_width The width of the terminal.
+        console_layout_struct(uint32_t const terminal_width) :
             screenWidth{0}, defaultScreenWidth{80}, maximalScreenWidth{120}, minimalScreenWidth{40},
             leftPadding{4}, centerPadding{2}, rightPadding{2}, leftColumnWidth{4}, rightColumnWidth{0}
         {
             // Guess terminal screen width and set into layout.
-            unsigned cols = get_terminal_width();
-            screenWidth = (cols > 0) ? cols : defaultScreenWidth;
+            screenWidth = (terminal_width > 0) ? terminal_width : defaultScreenWidth;
             screenWidth = std::max(screenWidth, minimalScreenWidth);
             screenWidth = std::min(screenWidth, maximalScreenWidth);
             screenWidth -= rightPadding;
@@ -102,6 +99,9 @@ protected:
             rightColumnWidth = screenWidth - leftPadding - leftColumnWidth - centerPadding - rightPadding;
             rightColumnTab = leftPadding + leftColumnWidth + centerPadding;
         }
+
+        //!\brief The default constructor.
+        console_layout_struct() : console_layout_struct{get_terminal_width()} {}
     };
 
     //!\brief Prints a help page header to std::cout.
@@ -420,6 +420,10 @@ protected:
 
     //!\brief Needed for correct formatting while calling different print functions.
     bool prev_was_paragraph{false};
+
+    //!\brief Befriend seqan3::detail::test_accessor to grant access to layout.
+    friend struct ::seqan3::detail::test_accessor;
+
     //!\brief Stores the relevant parameters of the documentation on the screen.
     console_layout_struct layout{};
 };
@@ -498,10 +502,10 @@ public:
     void parse(argument_parser_meta_data const & parser_meta)
     {
         meta = parser_meta;
-        debug_stream_type strem{std::cout};
+        debug_stream_type stream{std::cout};
         std::string seqan_license{
-R"(Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+R"(Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -528,26 +532,26 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.)"};
 
-        strem << views::repeat_n('=', 80) << to_text("\n\\fB") << "Copyright information for "
-              << meta.app_name << ":\n" << to_text("\\fP") << views::repeat_n('-', 80) << '\n';
+        stream << std::string(80, '=') << to_text("\n\\fB") << "Copyright information for "
+               << meta.app_name << ":\n" << to_text("\\fP") << std::string(80, '-') << '\n';
 
         if (!empty(meta.long_copyright))
         {
-            strem << to_text("\\fP") << meta.long_copyright << "\n";
+            stream << to_text("\\fP") << meta.long_copyright << "\n";
         }
         else if (!empty(meta.short_copyright))
         {
-            strem << to_text("\\fP") << meta.app_name << " full copyright information not available. Displaying"
+            stream << to_text("\\fP") << meta.app_name << " full copyright information not available. Displaying"
                   << " short copyright information instead:\n" << to_text("\\fP") << meta.short_copyright << "\n";
         }
         else
         {
-            strem << to_text("\\fP") << meta.app_name << " copyright information not available.\n";
+            stream << to_text("\\fP") << meta.app_name << " copyright information not available.\n";
         }
 
-        strem << views::repeat_n('=', 80) << to_text("\n\\fB")
+        stream << std::string(80, '=') << to_text("\n\\fB")
               << "This program contains SeqAn code licensed under the following terms:\n" << to_text("\\fP")
-              << views::repeat_n('-', 80) << '\n' << seqan_license << '\n';
+              << std::string(80, '-') << '\n' << seqan_license << '\n';
 
         std::exit(EXIT_SUCCESS);
     }

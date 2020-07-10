@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -11,8 +11,6 @@
 
 #include <seqan3/std/iterator>
 #include <seqan3/std/ranges>
-
-using namespace seqan3;
 
 template <typename T>
 struct iterator_fixture : public ::testing::Test
@@ -45,8 +43,10 @@ struct iterator_fixture : public ::testing::Test
 
 // Helper concept to check whether the test fixture has a member function expect_eq.
 template <typename T>
-SEQAN3_CONCEPT HasExpectEqualMemberFunction = requires(T a) {
-    { a.expect_eq(*std::ranges::begin(a.test_range), *std::ranges::begin(a.expected_range)) } -> void;
+SEQAN3_CONCEPT HasExpectEqualMemberFunction = requires(T & a)
+{
+    requires std::same_as<decltype(T::expect_eq(*std::ranges::begin(a.test_range),
+                                                *std::ranges::begin(a.expected_range))), void>;
 };
 
 // Delegates to the test fixture member function `expect_eq` if available and falls back to EXPECT_EQ otherwise.
@@ -59,7 +59,7 @@ void expext_eq(A && a, B && b)
         EXPECT_EQ(a, b);
 }
 
-TYPED_TEST_CASE_P(iterator_fixture);
+TYPED_TEST_SUITE_P(iterator_fixture);
 
 TYPED_TEST_P(iterator_fixture, concept_check)
 {
@@ -494,19 +494,19 @@ TYPED_TEST_P(iterator_fixture, compare_geq)
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(iterator_fixture,
-                           concept_check,
-                           const_non_const_compatibility,
-                           dereference,
-                           compare,
-                           move_forward_pre,
-                           move_forward_post,
-                           move_backward,
-                           jump_forward,
-                           jump_backward,
-                           jump_random,
-                           difference,
-                           compare_less,
-                           compare_greater,
-                           compare_leq,
-                           compare_geq);
+REGISTER_TYPED_TEST_SUITE_P(iterator_fixture,
+                            concept_check,
+                            const_non_const_compatibility,
+                            dereference,
+                            compare,
+                            move_forward_pre,
+                            move_forward_post,
+                            move_backward,
+                            jump_forward,
+                            jump_backward,
+                            jump_random,
+                            difference,
+                            compare_less,
+                            compare_greater,
+                            compare_leq,
+                            compare_geq);

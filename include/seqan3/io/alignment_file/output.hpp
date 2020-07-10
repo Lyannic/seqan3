@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -49,36 +49,10 @@ namespace seqan3
  *                              fields IDs; only relevant if these can't be deduced.
  * \tparam valid_formats        A seqan3::type_list of the selectable formats (each
  *                              must model seqan3::alignment_file_output_format).
- * \tparam stream_char_type     The type of character of the underlying stream, must model seqan3::builtin_character.
  *
  * \details
  *
- * ### Introduction
- *
- * Alignment files provide a way to store pairwise alignment information.
- * Well-known formats include SAM and BAM or BLAST.
- *
- * The Alignment file abstraction supports writing following fields:
- *
- *   1. field::SEQ
- *   2. field::ID
- *   3. field::OFFSET
- *   4. field::REF_SEQ
- *   5. field::REF_ID
- *   6. field::REF_OFFSET
- *   7. field::ALIGNMENT
- *   8. field::MAPQ
- *   9. field::FLAG
- *   10. field::QUAL
- *   11. field::MATE
- *   12. field::TAGS
- *   13. field::EVALUE
- *   14. field::BIT_SCORE
- *   15. field::CIGAR
- *
- * There is an additional field called seqan3::field::HEADER_PTR. It is used to transfer
- * header information from seqan3::alignment_file_input to seqan3::alignment_file_output,
- * but you needn't deal with this field manually.
+ * \copydetails alignment_file
  *
  * The member functions take any and either of these fields.
  *
@@ -167,23 +141,23 @@ namespace seqan3
  *   * seqan3::format_bam
  */
 template <detail::fields_specialisation selected_field_ids_ =
-              fields<field::SEQ,
-                     field::ID,
-                     field::OFFSET,
-                     field::REF_SEQ,
-                     field::REF_ID,
-                     field::REF_OFFSET,
-                     field::ALIGNMENT,
-                     field::MAPQ,
-                     field::QUAL,
-                     field::FLAG,
-                     field::MATE,
-                     field::TAGS,
-                     field::EVALUE,
-                     field::BIT_SCORE,
-                     field::HEADER_PTR>,
+              fields<field::seq,
+                     field::id,
+                     field::offset,
+                     field::ref_seq,
+                     field::ref_id,
+                     field::ref_offset,
+                     field::alignment,
+                     field::cigar,
+                     field::mapq,
+                     field::qual,
+                     field::flag,
+                     field::mate,
+                     field::tags,
+                     field::evalue,
+                     field::bit_score,
+                     field::header_ptr>,
           detail::type_list_of_alignment_file_output_formats valid_formats_ = type_list<format_sam, format_bam>,
-          builtin_character stream_char_type_ = char,
           typename ref_ids_type = ref_info_not_given>
 class alignment_file_output
 {
@@ -196,27 +170,27 @@ public:
     using selected_field_ids    = selected_field_ids_;
     //!\brief A seqan3::type_list with the possible formats.
     using valid_formats         = valid_formats_;
-    //!\brief Character type of the stream(s), usually `char`.
-    using stream_char_type      = stream_char_type_;
+    //!\brief Character type of the stream(s).
+    using stream_char_type      = char;
     //!\}
 
     //!\brief The subset of seqan3::field IDs that are valid for this file.
-    using field_ids             = fields<field::HEADER_PTR,
-                                         field::SEQ,
-                                         field::ID,
-                                         field::OFFSET,
-                                         field::REF_SEQ,
-                                         field::REF_ID,
-                                         field::REF_OFFSET,
-                                         field::ALIGNMENT,
-                                         field::CIGAR,
-                                         field::MAPQ,
-                                         field::FLAG,
-                                         field::QUAL,
-                                         field::MATE,
-                                         field::TAGS,
-                                         field::EVALUE,
-                                         field::BIT_SCORE>;
+    using field_ids             = fields<field::header_ptr,
+                                         field::seq,
+                                         field::id,
+                                         field::offset,
+                                         field::ref_seq,
+                                         field::ref_id,
+                                         field::ref_offset,
+                                         field::alignment,
+                                         field::cigar,
+                                         field::mapq,
+                                         field::flag,
+                                         field::qual,
+                                         field::mate,
+                                         field::tags,
+                                         field::evalue,
+                                         field::bit_score>;
 
     static_assert([] () constexpr
                   {
@@ -228,13 +202,6 @@ public:
                   "You selected a field that is not valid for alignment files, "
                   "please refer to the documentation of "
                   "seqan3::alignment_file_output::field_ids for the accepted values.");
-
-    static_assert([] () constexpr
-                  {
-                      return !(selected_field_ids::contains(field::ALIGNMENT) &&
-                               selected_field_ids::contains(field::CIGAR));
-                  }(),
-                  "You may not select field::ALIGNMENT and field::CIGAR at the same time.");
 
     /*!\name Range associated types
      * \brief Most of the range associated types are `void` for output ranges.
@@ -302,8 +269,12 @@ public:
      */
     alignment_file_output(std::filesystem::path filename,
                           selected_field_ids const & SEQAN3_DOXYGEN_ONLY(fields_tag) = selected_field_ids{}) :
-        primary_stream{new std::ofstream{filename, std::ios_base::out | std::ios::binary}, stream_deleter_default}
+        primary_stream{new std::ofstream{}, stream_deleter_default}
     {
+        primary_stream->rdbuf()->pubsetbuf(stream_buffer.data(), stream_buffer.size());
+        static_cast<std::basic_ofstream<char> *>(primary_stream.get())->open(filename,
+                                                                             std::ios_base::out | std::ios::binary);
+
         // open stream
         if (!primary_stream->good())
             throw file_open_error{"Could not open file " + filename.string() + " for writing."};
@@ -332,6 +303,9 @@ public:
      * See the section on \link io_compression compression and decompression \endlink for more information.
      */
     template <output_stream stream_type, alignment_file_output_format file_format>
+    //!\cond
+        requires std::same_as<typename std::remove_reference_t<stream_type>::char_type, stream_char_type>
+    //!\endcond
     alignment_file_output(stream_type              & stream,
                           file_format        const & SEQAN3_DOXYGEN_ONLY(format_tag),
                           selected_field_ids const & SEQAN3_DOXYGEN_ONLY(fields_tag) = selected_field_ids{}) :
@@ -345,6 +319,9 @@ public:
 
     //!\overload
     template <output_stream stream_type, alignment_file_output_format file_format>
+    //!\cond
+        requires std::same_as<typename std::remove_reference_t<stream_type>::char_type, stream_char_type>
+    //!\endcond
     alignment_file_output(stream_type             && stream,
                           file_format        const & SEQAN3_DOXYGEN_ONLY(format_tag),
                           selected_field_ids const & SEQAN3_DOXYGEN_ONLY(fields_tag) = selected_field_ids{}) :
@@ -512,22 +489,22 @@ public:
         using default_align_t = std::pair<std::span<gapped<char>>, std::span<gapped<char>>>;
         using default_mate_t  = std::tuple<std::string_view, std::optional<int32_t>, int32_t>;
 
-        write_record(detail::get_or<field::HEADER_PTR>(r, nullptr),
-                     detail::get_or<field::SEQ>(r, std::string_view{}),
-                     detail::get_or<field::QUAL>(r, std::string_view{}),
-                     detail::get_or<field::ID>(r, std::string_view{}),
-                     detail::get_or<field::OFFSET>(r, 0u),
-                     detail::get_or<field::REF_SEQ>(r, std::string_view{}),
-                     detail::get_or<field::REF_ID>(r, std::ignore),
-                     detail::get_or<field::REF_OFFSET>(r, std::optional<int32_t>{}),
-                     detail::get_or<field::ALIGNMENT>(r, default_align_t{}),
-                     detail::get_or<field::CIGAR>(r, std::vector<cigar>{}),
-                     detail::get_or<field::FLAG>(r, 0u),
-                     detail::get_or<field::MAPQ>(r, 0u),
-                     detail::get_or<field::MATE>(r, default_mate_t{}),
-                     detail::get_or<field::TAGS>(r, sam_tag_dictionary{}),
-                     detail::get_or<field::EVALUE>(r, 0u),
-                     detail::get_or<field::BIT_SCORE>(r, 0u));
+        write_record(detail::get_or<field::header_ptr>(r, nullptr),
+                     detail::get_or<field::seq>(r, std::string_view{}),
+                     detail::get_or<field::qual>(r, std::string_view{}),
+                     detail::get_or<field::id>(r, std::string_view{}),
+                     detail::get_or<field::offset>(r, 0u),
+                     detail::get_or<field::ref_seq>(r, std::string_view{}),
+                     detail::get_or<field::ref_id>(r, std::ignore),
+                     detail::get_or<field::ref_offset>(r, std::optional<int32_t>{}),
+                     detail::get_or<field::alignment>(r, default_align_t{}),
+                     detail::get_or<field::cigar>(r, std::vector<cigar>{}),
+                     detail::get_or<field::flag>(r, sam_flag::none),
+                     detail::get_or<field::mapq>(r, 0u),
+                     detail::get_or<field::mate>(r, default_mate_t{}),
+                     detail::get_or<field::tags>(r, sam_tag_dictionary{}),
+                     detail::get_or<field::evalue>(r, 0u),
+                     detail::get_or<field::bit_score>(r, 0u));
     }
 
     /*!\brief           Write a record in form of a std::tuple to the file.
@@ -561,22 +538,22 @@ public:
         using default_mate_t  = std::tuple<std::string_view, std::optional<int32_t>, int32_t>;
 
         // index_of might return npos, but this will be handled well by get_or_ignore (and just return ignore)
-        write_record(detail::get_or<selected_field_ids::index_of(field::HEADER_PTR)>(t, nullptr),
-                     detail::get_or<selected_field_ids::index_of(field::SEQ)>(t, std::string_view{}),
-                     detail::get_or<selected_field_ids::index_of(field::QUAL)>(t, std::string_view{}),
-                     detail::get_or<selected_field_ids::index_of(field::ID)>(t, std::string_view{}),
-                     detail::get_or<selected_field_ids::index_of(field::OFFSET)>(t, 0u),
-                     detail::get_or<selected_field_ids::index_of(field::REF_SEQ)>(t, std::string_view{}),
-                     detail::get_or<selected_field_ids::index_of(field::REF_ID)>(t, std::ignore),
-                     detail::get_or<selected_field_ids::index_of(field::REF_OFFSET)>(t, std::optional<int32_t>{}),
-                     detail::get_or<selected_field_ids::index_of(field::ALIGNMENT)>(t, default_align_t{}),
-                     detail::get_or<selected_field_ids::index_of(field::CIGAR)>(t, std::vector<cigar>{}),
-                     detail::get_or<selected_field_ids::index_of(field::FLAG)>(t, 0u),
-                     detail::get_or<selected_field_ids::index_of(field::MAPQ)>(t, 0u),
-                     detail::get_or<selected_field_ids::index_of(field::MATE)>(t, default_mate_t{}),
-                     detail::get_or<selected_field_ids::index_of(field::TAGS)>(t, sam_tag_dictionary{}),
-                     detail::get_or<selected_field_ids::index_of(field::EVALUE)>(t, 0u),
-                     detail::get_or<selected_field_ids::index_of(field::BIT_SCORE)>(t, 0u));
+        write_record(detail::get_or<selected_field_ids::index_of(field::header_ptr)>(t, nullptr),
+                     detail::get_or<selected_field_ids::index_of(field::seq)>(t, std::string_view{}),
+                     detail::get_or<selected_field_ids::index_of(field::qual)>(t, std::string_view{}),
+                     detail::get_or<selected_field_ids::index_of(field::id)>(t, std::string_view{}),
+                     detail::get_or<selected_field_ids::index_of(field::offset)>(t, 0u),
+                     detail::get_or<selected_field_ids::index_of(field::ref_seq)>(t, std::string_view{}),
+                     detail::get_or<selected_field_ids::index_of(field::ref_id)>(t, std::ignore),
+                     detail::get_or<selected_field_ids::index_of(field::ref_offset)>(t, std::optional<int32_t>{}),
+                     detail::get_or<selected_field_ids::index_of(field::alignment)>(t, default_align_t{}),
+                     detail::get_or<selected_field_ids::index_of(field::cigar)>(t, std::vector<cigar>{}),
+                     detail::get_or<selected_field_ids::index_of(field::flag)>(t, sam_flag::none),
+                     detail::get_or<selected_field_ids::index_of(field::mapq)>(t, 0u),
+                     detail::get_or<selected_field_ids::index_of(field::mate)>(t, default_mate_t{}),
+                     detail::get_or<selected_field_ids::index_of(field::tags)>(t, sam_tag_dictionary{}),
+                     detail::get_or<selected_field_ids::index_of(field::evalue)>(t, 0u),
+                     detail::get_or<selected_field_ids::index_of(field::bit_score)>(t, 0u));
     }
 
     /*!\brief            Write a record to the file by passing individual fields.
@@ -632,7 +609,7 @@ public:
     template <typename rng_t>
     alignment_file_output & operator=(rng_t && range)
     //!\cond
-        requires std::ranges::input_range<rng_t> && tuple_like<reference_t<rng_t>>
+        requires std::ranges::input_range<rng_t> && tuple_like<std::ranges::range_reference_t<rng_t>>
     //!\endcond
     {
         for (auto && record : range)
@@ -671,7 +648,7 @@ public:
     template <typename rng_t>
     friend alignment_file_output & operator|(rng_t && range, alignment_file_output & f)
     //!\cond
-        requires std::ranges::input_range<rng_t> && tuple_like<reference_t<rng_t>>
+        requires std::ranges::input_range<rng_t> && tuple_like<std::ranges::range_reference_t<rng_t>>
     //!\endcond
     {
         f = range;
@@ -682,7 +659,7 @@ public:
     template <typename rng_t>
     friend alignment_file_output operator|(rng_t && range, alignment_file_output && f)
     //!\cond
-        requires std::ranges::input_range<rng_t> && tuple_like<reference_t<rng_t>>
+        requires std::ranges::input_range<rng_t> && tuple_like<std::ranges::range_reference_t<rng_t>>
     //!\endcond
     {
         f = range;
@@ -723,6 +700,8 @@ public:
 
 protected:
     //!\privatesection
+    //!\brief A larger (compared to stl default) stream buffer to use when reading from a file.
+    std::vector<char> stream_buffer{std::vector<char>(1'000'000)};
 
     /*!\name Stream / file access
      * \{
@@ -768,9 +747,9 @@ protected:
         {
             header_ptr->ref_id_info.emplace_back(ref_lengths[idx], "");
 
-            if constexpr (std::ranges::contiguous_range<reference_t<ref_ids_type_>> &&
-                          std::ranges::sized_range<reference_t<ref_ids_type_>> &&
-                          forwarding_range<reference_t<ref_ids_type_>>)
+            if constexpr (std::ranges::contiguous_range<std::ranges::range_reference_t<ref_ids_type_>> &&
+                          std::ranges::sized_range<std::ranges::range_reference_t<ref_ids_type_>> &&
+                          forwarding_range<std::ranges::range_reference_t<ref_ids_type_>>)
             {
                 auto && id = header_ptr->ref_ids()[idx];
                 header_ptr->ref_dict[std::span{std::ranges::data(id), std::ranges::size(id)}] = idx;
@@ -827,63 +806,58 @@ protected:
  */
 
 /*!\brief Deduces selected_field_ids from input and sets alignment_file_output::ref_ids_type to
- * seqan3::detail::ref_info_not_given. Valid formats and stream_char_type are defaulted.
+ *        seqan3::detail::ref_info_not_given. valid_formats is defaulted.
  */
-template <detail::fields_specialisation    selected_field_ids>
+template <detail::fields_specialisation selected_field_ids>
 alignment_file_output(std::filesystem::path, selected_field_ids const &)
     -> alignment_file_output<selected_field_ids,
                              typename alignment_file_output<>::valid_formats,
-                             typename alignment_file_output<>::stream_char_type,
                              ref_info_not_given>;
 
-/*!\brief Deduces selected_field_ids, the valid format and the stream_char_type from input and
- * sets alignment_file_output::ref_ids_type to seqan3::detail::ref_info_not_given.
+/*!\brief Deduces selected_field_ids, and the valid format from input and
+ *        sets alignment_file_output::ref_ids_type to seqan3::detail::ref_info_not_given.
  */
-template <output_stream                  stream_type,
+template <output_stream stream_type,
           alignment_file_output_format file_format,
-          detail::fields_specialisation            selected_field_ids>
+          detail::fields_specialisation selected_field_ids>
 alignment_file_output(stream_type &&, file_format const &, selected_field_ids const &)
     -> alignment_file_output<selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              ref_info_not_given>;
 
-/*!\brief Deduces selected_field_ids, the valid format and the stream_char_type from input and
- * sets alignment_file_output::ref_ids_type to seqan3::detail::ref_info_not_given.
+/*!\brief Deduces selected_field_ids, and the valid format from input and
+ *        sets alignment_file_output::ref_ids_type to seqan3::detail::ref_info_not_given.
  */
-template <output_stream                  stream_type,
+template <output_stream stream_type,
           alignment_file_output_format file_format,
-          detail::fields_specialisation            selected_field_ids>
+          detail::fields_specialisation selected_field_ids>
 alignment_file_output(stream_type &, file_format const &, selected_field_ids const &)
     -> alignment_file_output<selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              ref_info_not_given>;
 
-/*!\brief Deduces the valid format and the stream_char_type from input and
- * sets alignment_file_output::ref_ids_type to seqan3::detail::ref_info_not_given.
+/*!\brief Deduces the valid format from input and sets alignment_file_output::ref_ids_type to
+ *        seqan3::detail::ref_info_not_given. selected_field_ids is defaulted.
  */
-template <output_stream                  stream_type,
+template <output_stream stream_type,
           alignment_file_output_format file_format>
 alignment_file_output(stream_type &&, file_format const &)
     -> alignment_file_output<typename alignment_file_output<>::selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              ref_info_not_given>;
 
-/*!\brief Deduces the valid format and the stream_char_type from input and
- * sets alignment_file_output::ref_ids_type to seqan3::detail::ref_info_not_given.
+/*!\brief Deduces the valid format from input and sets alignment_file_output::ref_ids_type to
+ *        seqan3::detail::ref_info_not_given. selected_field_ids is defaulted.
  */
-template <output_stream                  stream_type,
+template <output_stream stream_type,
           alignment_file_output_format file_format>
 alignment_file_output(stream_type &, file_format const &)
     -> alignment_file_output<typename alignment_file_output<>::selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              ref_info_not_given>;
 
-//!\brief Deduces selected_field_ids and ref_ids_type from input. Valid formats and stream_char_type are defaulted.
-template <detail::fields_specialisation    selected_field_ids,
+//!\brief Deduces selected_field_ids and ref_ids_type from input. valid_formats is defaulted.
+template <detail::fields_specialisation selected_field_ids,
           std::ranges::forward_range ref_ids_type,
           std::ranges::forward_range ref_lengths_type>
 alignment_file_output(std::filesystem::path const &,
@@ -892,10 +866,9 @@ alignment_file_output(std::filesystem::path const &,
                       selected_field_ids const &)
     -> alignment_file_output<selected_field_ids,
                              typename alignment_file_output<>::valid_formats,
-                             typename alignment_file_output<>::stream_char_type,
                              std::remove_reference_t<ref_ids_type>>;
 
-//!\brief Deduces ref_ids_type from input. Valid formats, selected_field_ids and stream_char_type are defaulted.
+//!\brief Deduces ref_ids_type from input. Valid formats, and selected_field_ids are defaulted.
 template <std::ranges::forward_range ref_ids_type,
           std::ranges::forward_range ref_lengths_type>
 alignment_file_output(std::filesystem::path const &,
@@ -903,15 +876,14 @@ alignment_file_output(std::filesystem::path const &,
                       ref_lengths_type &&)
     -> alignment_file_output<typename alignment_file_output<>::selected_field_ids,
                              typename alignment_file_output<>::valid_formats,
-                             typename alignment_file_output<>::stream_char_type,
                              std::remove_reference_t<ref_ids_type>>;
 
-//!\brief Deduces selected_field_ids, the valid format, stream_char_type and the ref_ids_type from input.
-template <output_stream                  stream_type,
+//!\brief Deduces selected_field_ids, the valid format, and the ref_ids_type from input.
+template <output_stream stream_type,
           std::ranges::forward_range ref_ids_type,
           std::ranges::forward_range ref_lengths_type,
           alignment_file_output_format file_format,
-          detail::fields_specialisation            selected_field_ids>
+          detail::fields_specialisation selected_field_ids>
 alignment_file_output(stream_type &&,
                       ref_ids_type &&,
                       ref_lengths_type &&,
@@ -919,15 +891,14 @@ alignment_file_output(stream_type &&,
                       selected_field_ids const &)
     -> alignment_file_output<selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              std::remove_reference_t<ref_ids_type>>;
 
-//!\brief Deduces selected_field_ids, the valid format, stream_char_type and the ref_ids_type from input.
-template <output_stream                  stream_type,
+//!\brief Deduces selected_field_ids, the valid format, and the ref_ids_type from input.
+template <output_stream stream_type,
           std::ranges::forward_range ref_ids_type,
           std::ranges::forward_range ref_lengths_type,
           alignment_file_output_format file_format,
-          detail::fields_specialisation            selected_field_ids>
+          detail::fields_specialisation selected_field_ids>
 alignment_file_output(stream_type &,
                       ref_ids_type &&,
                       ref_lengths_type &&,
@@ -935,11 +906,10 @@ alignment_file_output(stream_type &,
                       selected_field_ids const &)
     -> alignment_file_output<selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              std::remove_reference_t<ref_ids_type>>;
 
-//!\brief Deduces the valid format, stream_char_type and the ref_ids_type from input. selected_field_ids are defaulted.
-template <output_stream                  stream_type,
+//!\brief Deduces the valid format, and the ref_ids_type from input. selected_field_ids is defaulted.
+template <output_stream stream_type,
           std::ranges::forward_range ref_ids_type,
           std::ranges::forward_range ref_lengths_type,
           alignment_file_output_format file_format>
@@ -949,11 +919,10 @@ alignment_file_output(stream_type &&,
                       file_format const &)
     -> alignment_file_output<typename alignment_file_output<>::selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              std::remove_reference_t<ref_ids_type>>;
 
-//!\brief Deduces the valid format, stream_char_type and the ref_ids_type from input. selected_field_ids are defaulted.
-template <output_stream                  stream_type,
+//!\brief Deduces the valid format, and the ref_ids_type from input. selected_field_ids is defaulted.
+template <output_stream stream_type,
           std::ranges::forward_range ref_ids_type,
           std::ranges::forward_range ref_lengths_type,
           alignment_file_output_format file_format>
@@ -963,7 +932,6 @@ alignment_file_output(stream_type &,
                       file_format const &)
     -> alignment_file_output<typename alignment_file_output<>::selected_field_ids,
                              type_list<file_format>,
-                             typename std::remove_reference_t<stream_type>::char_type,
                              std::remove_reference_t<ref_ids_type>>;
 //!\}
 

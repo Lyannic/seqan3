@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@
 #include <seqan3/range/decorator/gap_decorator.hpp>
 #include <seqan3/range/views/convert.hpp>
 #include <seqan3/range/views/slice.hpp>
-#include <seqan3/range/views/view_all.hpp>
+#include <seqan3/range/views/type_reduce.hpp>
 #include <seqan3/range/views/to.hpp>
 #include <seqan3/std/concepts>
 #include <seqan3/std/ranges>
@@ -53,22 +53,49 @@ namespace seqan3::detail
 template <std::ranges::viewable_range range_t>
 struct make_aligned_sequence_type
 {
+private:
     // The following expressions are used to check if the sequence types can be used as template arguments for the
     // seqan3::gap_decorator. Ranges that do not model std::random_access_range for instance cannot be augmented with
     // the gap_decorator and need to be copied instead.
 
+    //!\brief The unaligned sequence type that will be used to assign a sequence to seqan3::assign_unaligned.
+    using unaligned_sequence_type = decltype(std::declval<range_t>() | views::type_reduce | views::slice(0, 1));
+
+public:
     //!\brief The resulting aligned sequence type.
-    using type = lazy_conditional_t<is_class_template_declarable_with_v<gap_decorator,
-                                                                        decltype(std::declval<range_t>()
-                                                                               | views::slice(0, 1))>,
-                                    lazy<gap_decorator, decltype(std::declval<range_t>() | views::slice(0, 1))>,
-                                    lazy<std::vector, gapped<std::ranges::range_value_t<range_t>>>>;
+    using type = lazy_conditional_t<is_class_template_declarable_with_v<gap_decorator, unaligned_sequence_type>,
+                                    lazy<gap_decorator, unaligned_sequence_type>,
+                                    lazy<std::vector, gapped<std::ranges::range_value_t<unaligned_sequence_type>>>>;
+};
+
+/*!\brief A transformation trait that returns the correct pairwise alignment type for two given sequence types.
+ * \ingroup alignment_matrix
+ * \implements seqan3::transformation_trait
+ *
+ * \tparam first_sequence_t The first sequence of the pairwise alignment; must model std::ranges::viewable_range.
+ * \tparam second_sequence_t The second sequence of the pairwise alignment; must model std::ranges::viewable_range.
+ */
+template <std::ranges::viewable_range first_sequence_t, std::ranges::viewable_range second_sequence_t>
+struct make_pairwise_alignment_type
+{
+    //!\brief The aligned sequence type for the first sequence.
+    using first_aligned_t = typename make_aligned_sequence_type<first_sequence_t>::type;
+    //!\brief The aligned sequence type for the second sequence.
+    using second_aligned_t = typename make_aligned_sequence_type<second_sequence_t>::type;
+
+    static_assert(seqan3::aligned_sequence<first_aligned_t>,
+                  "first_aligned_t is required to model seqan3::aligned_sequence!");
+    static_assert(seqan3::aligned_sequence<second_aligned_t>,
+                  "second_aligned_t is required to model seqan3::aligned_sequence!");
+
+    //!\brief The resulting pairwise alignment type.
+    using type = std::tuple<first_aligned_t, second_aligned_t>;
 };
 
 /*!\brief Builds the alignment for a given pair of sequences and the respective trace.
  * \ingroup alignment_matrix
  * \tparam fst_sequence_t The first sequence of the pairwise alignment; must model std::ranges::viewable_range.
- * \tparam sec_sequence_t The first sequence of the pairwise alignment; must model std::ranges::viewable_range.
+ * \tparam sec_sequence_t The second sequence of the pairwise alignment; must model std::ranges::viewable_range.
  *
  * \details
  *
@@ -88,18 +115,9 @@ struct make_aligned_sequence_type
 template <std::ranges::viewable_range fst_sequence_t, std::ranges::viewable_range sec_sequence_t>
 class aligned_sequence_builder
 {
-private:
-    //!\brief The aligned sequence type for the first sequence.
-    using fst_aligned_t = typename make_aligned_sequence_type<fst_sequence_t>::type;
-    //!\brief The aligned sequence type for the second sequence.
-    using sec_aligned_t = typename make_aligned_sequence_type<sec_sequence_t>::type;
-
-    static_assert(seqan3::aligned_sequence<fst_aligned_t>,
-                  "fst_aligned_t is required to model seqan3::aligned_sequence!");
-    static_assert(seqan3::aligned_sequence<sec_aligned_t>,
-                  "sec_aligned_t is required to model seqan3::aligned_sequence!");
-
 public:
+    //!\brief The pairwise alignment type of the two sequences.
+    using alignment_type = typename make_pairwise_alignment_type<fst_sequence_t, sec_sequence_t>::type;
 
     //!\brief The result type when building the aligned sequences.
     struct [[nodiscard]] result_type
@@ -110,7 +128,7 @@ public:
         std::pair<size_t, size_t> second_sequence_slice_positions{};
         //!\brief The alignment over the slices of the first and second sequence, which corresponds to the given
         //!\      trace path.
-        std::pair<fst_aligned_t, sec_aligned_t> alignment{};
+        alignment_type alignment{};
     };
 
     /*!\name Constructors, destructor and assignment
@@ -128,14 +146,14 @@ public:
      * \param[in] sec_rng The second range to build the aligned sequence for.
      */
     constexpr aligned_sequence_builder(fst_sequence_t fst_rng, sec_sequence_t sec_rng) :
-        fst_rng{views::all(std::forward<fst_sequence_t>(fst_rng))},
-        sec_rng{views::all(std::forward<sec_sequence_t>(sec_rng))}
+        fst_rng{views::type_reduce(std::forward<fst_sequence_t>(fst_rng))},
+        sec_rng{views::type_reduce(std::forward<sec_sequence_t>(sec_rng))}
     {}
     //!\}
 
     /*!\brief Builds the aligned sequences from the given trace path.
      * \tparam trace_path_t The type of the trace path; must model std::ranges::input_range and
-     *                      std::same_as<value_type_t<trace_path_t>, seqan::detail::trace_directions> must evaluate to
+     *                      std::same_as<std::ranges::range_value_t<trace_path_t>, seqan::detail::trace_directions> must evaluate to
      *                      `true`.
      * \param[in] trace_path The trace path.
      * \returns seqan3::detail::aligned_sequence_builder::result_type with the built alignment.
@@ -150,7 +168,7 @@ public:
     template <std::ranges::input_range trace_path_t>
     result_type operator()(trace_path_t && trace_path)
     {
-        static_assert(std::same_as<value_type_t<trace_path_t>, trace_directions>,
+        static_assert(std::same_as<std::ranges::range_value_t<trace_path_t>, trace_directions>,
                       "The value type of the trace path must be seqan3::detail::trace_directions");
 
         result_type res{};
@@ -173,13 +191,17 @@ public:
         std::tie(res.first_sequence_slice_positions.first, res.second_sequence_slice_positions.first) =
             std::pair<size_t, size_t>{trace_it.coordinate()};
 
-        assign_unaligned(res.alignment.first, fst_rng  | views::slice(res.first_sequence_slice_positions.first,
-                                                                      res.first_sequence_slice_positions.second));
-        assign_unaligned(res.alignment.second, sec_rng | views::slice(res.second_sequence_slice_positions.first,
-                                                                      res.second_sequence_slice_positions.second));
+        assign_unaligned(std::get<0>(res.alignment),
+                         fst_rng | views::slice(res.first_sequence_slice_positions.first,
+                                                res.first_sequence_slice_positions.second));
+        assign_unaligned(std::get<1>(res.alignment),
+                         sec_rng | views::slice(res.second_sequence_slice_positions.first,
+                                                res.second_sequence_slice_positions.second));
 
         // Now we need to insert the values.
-        fill_aligned_sequence(trace_segments | std::views::reverse, res.alignment.first, res.alignment.second);
+        fill_aligned_sequence(trace_segments | std::views::reverse,
+                              std::get<0>(res.alignment),
+                              std::get<1>(res.alignment));
 
         return res;
     }
@@ -216,8 +238,8 @@ private:
         }
     }
 
-    all_view<fst_sequence_t> fst_rng; //!< A view over the first range.
-    all_view<sec_sequence_t> sec_rng; //!< A view over the second range.
+    type_reduce_view<fst_sequence_t> fst_rng; //!< A view over the first range.
+    type_reduce_view<sec_sequence_t> sec_rng; //!< A view over the second range.
 };
 
 /*!\name Type deduction guides

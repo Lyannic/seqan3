@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -18,7 +18,6 @@
 #include <seqan3/core/type_traits/pre.hpp>
 #include <seqan3/core/type_traits/basic.hpp>
 #include <seqan3/core/type_traits/iterator.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/std/ranges>
 #include <seqan3/std/iterator>
 
@@ -54,7 +53,7 @@ namespace seqan3
  */
 template <std::ranges::input_range rng_t>
 //!\cond
-    requires !std::input_or_output_iterator<rng_t>
+    requires (!std::input_or_output_iterator<rng_t>)
 //!\endcond
 struct value_type<rng_t>
 {
@@ -72,7 +71,7 @@ struct value_type<rng_t>
  */
 template <std::ranges::input_range rng_t>
 //!\cond
-    requires !std::input_or_output_iterator<rng_t>
+    requires (!std::input_or_output_iterator<rng_t>)
 //!\endcond
 struct reference<rng_t>
 {
@@ -90,7 +89,7 @@ struct reference<rng_t>
  */
 template <std::ranges::input_range rng_t>
 //!\cond
-    requires !std::input_or_output_iterator<rng_t>
+    requires (!std::input_or_output_iterator<rng_t>)
 //!\endcond
 struct rvalue_reference<rng_t>
 {
@@ -108,12 +107,12 @@ struct rvalue_reference<rng_t>
  */
 template <std::ranges::input_range rng_t>
 //!\cond
-    requires !std::input_or_output_iterator<rng_t>
+    requires (!std::input_or_output_iterator<rng_t>)
 //!\endcond
 struct const_reference<rng_t>
 {
     //!\brief Resolves to the reference type of the `const_iterator` of t (not the `const iterator`!).
-    using type = reference_t<std::ranges::iterator_t<rng_t const>>;
+    using type = std::iter_reference_t<std::ranges::iterator_t<rng_t const>>;
 };
 
 // ----------------------------------------------------------------------------
@@ -126,7 +125,7 @@ struct const_reference<rng_t>
  */
 template <std::ranges::range rng_t>
 //!\cond
-    requires !std::input_or_output_iterator<rng_t>
+    requires (!std::input_or_output_iterator<rng_t>)
 //!\endcond
 struct difference_type<rng_t>
 {
@@ -144,12 +143,12 @@ struct difference_type<rng_t>
  */
 template <std::ranges::sized_range rng_t>
 //!\cond
-    requires !std::input_or_output_iterator<rng_t>
+    requires (!std::input_or_output_iterator<rng_t>)
 //!\endcond
 struct size_type<rng_t>
 {
     //!\brief Return the size_type as returned by the size function.
-    using type = decltype(size(std::declval<rng_t &>()));
+    using type = decltype(std::ranges::size(std::declval<rng_t &>()));
 };
 
 // ----------------------------------------------------------------------------

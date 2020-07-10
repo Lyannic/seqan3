@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -22,7 +22,6 @@
 #include <seqan3/core/char_operations/predicate.hpp>
 #include <seqan3/core/concept/core_language.hpp>
 #include <seqan3/core/concept/tuple.hpp>
-#include <seqan3/core/detail/reflection.hpp>
 #include <seqan3/core/detail/to_string.hpp>
 #include <seqan3/core/type_traits/range.hpp>
 #include <seqan3/core/type_traits/template_inspection.hpp>
@@ -31,6 +30,7 @@
 #include <seqan3/io/alignment_file/header.hpp>
 #include <seqan3/io/alignment_file/input_format_concept.hpp>
 #include <seqan3/io/alignment_file/input_options.hpp>
+#include <seqan3/io/alignment_file/misc.hpp>
 #include <seqan3/io/alignment_file/output_format_concept.hpp>
 #include <seqan3/io/alignment_file/output_options.hpp>
 #include <seqan3/io/alignment_file/sam_tag_dictionary.hpp>
@@ -133,14 +133,14 @@ protected:
                                 [[maybe_unused]] seq_type && seq,
                                 [[maybe_unused]] qual_type && qual,
                                 [[maybe_unused]] id_type && id,
-                                [[maybe_unused]] int32_t offset,
+                                [[maybe_unused]] int32_t const offset,
                                 [[maybe_unused]] ref_seq_type && SEQAN3_DOXYGEN_ONLY(ref_seq),
                                 [[maybe_unused]] ref_id_type && ref_id,
                                 [[maybe_unused]] std::optional<int32_t> ref_offset,
                                 [[maybe_unused]] align_type && align,
                                 [[maybe_unused]] cigar_type && cigar_vector,
-                                [[maybe_unused]] uint16_t flag,
-                                [[maybe_unused]] uint8_t mapq,
+                                [[maybe_unused]] sam_flag const flag,
+                                [[maybe_unused]] uint8_t const mapq,
                                 [[maybe_unused]] mate_type && mate,
                                 [[maybe_unused]] tag_dict_type && tag_dict,
                                 [[maybe_unused]] double SEQAN3_DOXYGEN_ONLY(e_value),
@@ -163,7 +163,7 @@ private:
         uint32_t mapq:8;        //!< The mapping quality.
         uint32_t bin:16;        //!< The bin number.
         uint32_t n_cigar_op:16; //!< The number of cigar operations of the alignment.
-        uint32_t flag:16;       //!< The flag value.
+        sam_flag flag;          //!< The flag value (uint16_t enum).
         int32_t l_seq;          //!< The number of bases of the read sequence.
         int32_t next_refID;     //!< The reference id of the mate.
         int32_t next_pos;       //!< The begin position of the mate alignment.
@@ -307,10 +307,10 @@ inline void format_bam::read_alignment_record(stream_type & stream,
                   "The ref_offset must be a specialisation of std::optional.");
 
     static_assert(detail::decays_to_ignore_v<mapq_type> || std::same_as<mapq_type, uint8_t>,
-                  "The type of field::MAPQ must be uint8_t.");
+                  "The type of field::mapq must be uint8_t.");
 
-    static_assert(detail::decays_to_ignore_v<flag_type> || std::same_as<flag_type, uint16_t>,
-                  "The type of field::FLAG must be uint8_t.");
+    static_assert(detail::decays_to_ignore_v<flag_type> || std::same_as<flag_type, sam_flag>,
+                  "The type of field::flag must be seqan3::sam_flag.");
 
     using stream_buf_t = std::istreambuf_iterator<typename stream_type::char_type>;
     auto stream_view = std::ranges::subrange<decltype(stream_buf_t{stream}), decltype(stream_buf_t{})>
@@ -334,10 +334,7 @@ inline void format_bam::read_alignment_record(stream_type & stream,
         read_field(stream_view, tmp32);
 
         if (tmp32 > 0) // header text is present
-            read_header(stream_view | views::take_exactly_or_throw(tmp32)
-                                    | views::take_until_and_consume(is_char<'\0'>),
-                        header,
-                        ref_seqs);
+            read_header(stream_view | views::take_exactly_or_throw(tmp32), header, ref_seqs);
 
         int32_t n_ref;
         read_field(stream_view, n_ref);
@@ -382,7 +379,7 @@ inline void format_bam::read_alignment_record(stream_type & stream,
     // read alignment record into buffer
     // -------------------------------------------------------------------------------------------------------------
     alignment_record_core core;
-    std::ranges::copy_n(stream_view.begin(), sizeof(core), reinterpret_cast<char *>(&core));
+    std::ranges::copy(stream_view | views::take_exactly_or_throw(sizeof(core)), reinterpret_cast<char *>(&core));
 
     if (core.refID >= static_cast<int32_t>(header.ref_ids().size()) || core.refID < -1) // [[unlikely]]
     {
@@ -391,16 +388,16 @@ inline void format_bam::read_alignment_record(stream_type & stream,
     }
     else if (core.refID > -1) // not unmapped
     {
-        ref_id = core.refID;                                                   // field::REF_ID
+        ref_id = core.refID;                                                   // field::ref_id
     }
 
-    flag = core.flag;                                                          // field::FLAG
-    mapq = core.mapq;                                                          // field::MAPQ
+    flag = core.flag;                                                          // field::flag
+    mapq = core.mapq;                                                          // field::mapq
 
     if (core.pos > -1) // [[likely]]
-        ref_offset = core.pos;                                                 // field::REF_OFFSET
+        ref_offset = core.pos;                                                 // field::ref_offset
 
-    if constexpr (!detail::decays_to_ignore_v<mate_type>)                      // field::MATE
+    if constexpr (!detail::decays_to_ignore_v<mate_type>)                      // field::mate
     {
         if (core.next_refID > -1)
             get<0>(mate) = core.next_refID;
@@ -413,7 +410,7 @@ inline void format_bam::read_alignment_record(stream_type & stream,
 
     // read id
     // -------------------------------------------------------------------------------------------------------------
-    read_field(stream_view | views::take_exactly_or_throw(core.l_read_name - 1), id); // field::ID
+    read_field(stream_view | views::take_exactly_or_throw(core.l_read_name - 1), id); // field::id
     std::ranges::next(std::ranges::begin(stream_view)); // skip '\0'
 
     // read cigar string
@@ -454,7 +451,7 @@ inline void format_bam::read_alignment_record(stream_type & stream,
                 if (!tmp_cigar_vector.empty()) // only parse alignment if cigar information was given
                 {
                     assert(core.l_seq == (seq_length + offset_tmp + soft_clipping_end)); // sanity check
-                    using alph_t = value_type_t<decltype(get<1>(align))>;
+                    using alph_t = std::ranges::range_value_t<decltype(get<1>(align))>;
                     constexpr auto from_dna16 = detail::convert_through_char_representation<alph_t, sam_dna16>;
 
                     get<1>(align).reserve(seq_length);
@@ -499,7 +496,7 @@ inline void format_bam::read_alignment_record(stream_type & stream,
         }
         else
         {
-            using alph_t = value_type_t<decltype(seq)>;
+            using alph_t = std::ranges::range_value_t<decltype(seq)>;
             constexpr auto from_dna16 = detail::convert_through_char_representation<alph_t, sam_dna16>;
 
             for (auto [d1, d2] : seq_stream)
@@ -518,8 +515,8 @@ inline void format_bam::read_alignment_record(stream_type & stream,
             if constexpr (!detail::decays_to_ignore_v<align_type>)
             {
                 assign_unaligned(get<1>(align),
-                                 seq | views::slice(static_cast<decltype(std::ranges::distance(seq))>(offset_tmp),
-                                                   std::ranges::distance(seq) - soft_clipping_end));
+                                 seq | views::slice(static_cast<std::ranges::range_difference_t<seq_type>>(offset_tmp),
+                                                    std::ranges::distance(seq) - soft_clipping_end));
             }
         }
     }
@@ -541,7 +538,7 @@ inline void format_bam::read_alignment_record(stream_type & stream,
 
     // DONE READING - wrap up
     // -------------------------------------------------------------------------------------------------------------
-    if constexpr (!detail::decays_to_ignore_v<align_type>)
+    if constexpr (!detail::decays_to_ignore_v<align_type> || !detail::decays_to_ignore_v<cigar_type>)
     {
         // Check cigar, if it matches ‘kSmN’, where ‘k’ equals lseq, ‘m’ is the reference sequence length in the
         // alignment, and ‘S’ and ‘N’ are the soft-clipping and reference-clip, then the cigar string was larger
@@ -552,8 +549,8 @@ inline void format_bam::read_alignment_record(stream_type & stream,
             { // maybe only throw in debug mode and otherwise return an empty alignment?
                 throw format_error{detail::to_string("The cigar string '", offset_tmp, "S", ref_length,
                                    "N' suggests that the cigar string exceeded 65535 elements and was therefore ",
-                                   "stored in the optional field CG. You need to read in the field::TAGS and "
-                                   "field::SEQ in order to access this information.")};
+                                   "stored in the optional field CG. You need to read in the field::tags and "
+                                   "field::seq in order to access this information.")};
             }
             else
             {
@@ -569,17 +566,21 @@ inline void format_bam::read_alignment_record(stream_type & stream,
                 std::tie(tmp_cigar_vector, ref_length, seq_length) = parse_cigar(cigar_view);
                 offset_tmp = soft_clipping_end = 0;
                 transfer_soft_clipping_to(tmp_cigar_vector, offset_tmp, soft_clipping_end);
-
-                assign_unaligned(get<1>(align),
-                                 seq | views::slice(static_cast<decltype(std::ranges::distance(seq))>(offset_tmp),
-                                                   std::ranges::distance(seq) - soft_clipping_end));
                 tag_dict.erase(it); // remove redundant information
+
+                if constexpr (!detail::decays_to_ignore_v<align_type>)
+                {
+                    assign_unaligned(get<1>(align),
+                                     seq | views::slice(static_cast<std::ranges::range_difference_t<seq_type>>(offset_tmp),
+                                                        std::ranges::distance(seq) - soft_clipping_end));
+                }
             }
         }
-
-        // Alignment object construction
-        construct_alignment(align, tmp_cigar_vector, core.refID, ref_seqs, core.pos, ref_length); // inherited from SAM format
     }
+
+    // Alignment object construction
+    if constexpr (!detail::decays_to_ignore_v<align_type>)
+        construct_alignment(align, tmp_cigar_vector, core.refID, ref_seqs, core.pos, ref_length); // inherited from SAM
 
     if constexpr (!detail::decays_to_ignore_v<cigar_type>)
         std::swap(cigar_vector, tmp_cigar_vector);
@@ -603,14 +604,14 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
                                                [[maybe_unused]] seq_type && seq,
                                                [[maybe_unused]] qual_type && qual,
                                                [[maybe_unused]] id_type && id,
-                                               [[maybe_unused]] int32_t offset,
+                                               [[maybe_unused]] int32_t const offset,
                                                [[maybe_unused]] ref_seq_type && SEQAN3_DOXYGEN_ONLY(ref_seq),
                                                [[maybe_unused]] ref_id_type && ref_id,
                                                [[maybe_unused]] std::optional<int32_t> ref_offset,
                                                [[maybe_unused]] align_type && align,
                                                [[maybe_unused]] cigar_type && cigar_vector,
-                                               [[maybe_unused]] uint16_t flag,
-                                               [[maybe_unused]] uint8_t mapq,
+                                               [[maybe_unused]] sam_flag const flag,
+                                               [[maybe_unused]] uint8_t const mapq,
                                                [[maybe_unused]] mate_type && mate,
                                                [[maybe_unused]] tag_dict_type && tag_dict,
                                                [[maybe_unused]] double SEQAN3_DOXYGEN_ONLY(e_value),
@@ -620,17 +621,17 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
     // Type Requirements (as static asserts for user friendliness)
     // ---------------------------------------------------------------------
     static_assert((std::ranges::forward_range<seq_type>        &&
-                  alphabet<reference_t<seq_type>>),
+                  alphabet<std::ranges::range_reference_t<seq_type>>),
                   "The seq object must be a std::ranges::forward_range over "
                   "letters that model seqan3::alphabet.");
 
     static_assert((std::ranges::forward_range<id_type>         &&
-                  alphabet<reference_t<id_type>>),
+                  alphabet<std::ranges::range_reference_t<id_type>>),
                   "The id object must be a std::ranges::forward_range over "
                   "letters that model seqan3::alphabet.");
 
     static_assert((std::ranges::forward_range<ref_seq_type>    &&
-                  alphabet<reference_t<ref_seq_type>>),
+                  alphabet<std::ranges::range_reference_t<ref_seq_type>>),
                   "The ref_seq object must be a std::ranges::forward_range "
                   "over letters that model seqan3::alphabet.");
 
@@ -648,13 +649,13 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
                   "value_type is comparable to seqan3::gap");
 
     static_assert((std::tuple_size_v<remove_cvref_t<align_type>> == 2 &&
-                   std::equality_comparable_with<gap, reference_t<decltype(std::get<0>(align))>> &&
-                   std::equality_comparable_with<gap, reference_t<decltype(std::get<1>(align))>>),
+                   std::equality_comparable_with<gap, std::ranges::range_reference_t<decltype(std::get<0>(align))>> &&
+                   std::equality_comparable_with<gap, std::ranges::range_reference_t<decltype(std::get<1>(align))>>),
                   "The align object must be a std::pair of two ranges whose "
                   "value_type is comparable to seqan3::gap");
 
     static_assert((std::ranges::forward_range<qual_type>       &&
-                   alphabet<reference_t<qual_type>>),
+                   alphabet<std::ranges::range_reference_t<qual_type>>),
                   "The qual object must be a std::ranges::forward_range "
                   "over letters that model seqan3::alphabet.");
 
@@ -732,7 +733,13 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
 
         // if alignment is non-empty, replace cigar_vector.
         // else, compute the ref_length from given cigar_vector which is needed to fill field `bin`.
-        if (!std::ranges::empty(get<0>(align)) && !std::ranges::empty(get<1>(align)))
+        if (!std::ranges::empty(cigar_vector))
+        {
+            int32_t dummy_seq_length{};
+            for (auto & [count, operation] : cigar_vector)
+                update_alignment_lengths(ref_length, dummy_seq_length, operation.to_char(), count);
+        }
+        else if (!std::ranges::empty(get<0>(align)) && !std::ranges::empty(get<1>(align)))
         {
             ref_length = std::ranges::distance(get<1>(align));
 
@@ -749,12 +756,6 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
             off_end -= ref_length;
             cigar_vector = detail::get_cigar_vector(align, offset, off_end);
         }
-        else
-        {
-            int32_t dummy_seq_length{};
-            for (auto & [count, operation] : cigar_vector)
-                update_alignment_lengths(ref_length, dummy_seq_length, operation.to_char(), count);
-        }
 
         if (cigar_vector.size() >= (1 << 16)) // must be written into the sam tag CG
         {
@@ -766,12 +767,20 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
 
         std::string tag_dict_binary_str = get_tag_dict_str(tag_dict);
 
+        // Compute the value for the l_read_name field for the bam record.
+        // This value is stored including a trailing `0`, so at most 254 characters of the id can be stored, since
+        // the data type to store the value is uint8_t and 255 is the maximal size.
+        // If the id is empty a '*' is written instead, i.e. the written id is never an empty string and stores at least
+        // 2 bytes.
+        uint8_t read_name_size = std::min<uint8_t>(std::ranges::distance(id), 254) + 1;
+        read_name_size += static_cast<uint8_t>(read_name_size == 1); // need size two since empty id is stored as '*'.
+
         alignment_record_core core
         {
             /* block_size  */ 0,  // will be initialised right after
             /* refID       */ -1, // will be initialised right after
             /* pos         */ ref_offset.value_or(-1),
-            /* l_read_name */ std::max<uint8_t>(std::min<size_t>(std::ranges::distance(id) + 1, 255), 2),
+            /* l_read_name */ read_name_size,
             /* mapq        */ mapq,
             /* bin         */ reg2bin(ref_offset.value_or(-1), ref_length),
             /* n_cigar_op  */ static_cast<uint16_t>(cigar_vector.size()),
@@ -850,7 +859,7 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
 
         std::ranges::copy_n(reinterpret_cast<char *>(&core), sizeof(core), stream_it);  // write core
 
-        if (std::ranges::distance(id) == 0) // empty id is represented as * for backward compatibility
+        if (std::ranges::empty(id)) // empty id is represented as * for backward compatibility
             stream_it = '*';
         else
             std::ranges::copy_n(std::ranges::begin(id), core.l_read_name - 1, stream_it); // write read id
@@ -865,7 +874,7 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
         }
 
         // write seq (bit-compressed: sam_dna16 characters go into one byte)
-        using alph_t = value_type_t<seq_type>;
+        using alph_t = std::ranges::range_value_t<seq_type>;
         constexpr auto to_dna16 = detail::convert_through_char_representation<sam_dna16, alph_t>;
 
         auto sit = std::ranges::begin(seq);
@@ -888,7 +897,11 @@ inline void format_bam::write_alignment_record([[maybe_unused]] stream_type &  s
         }
         else
         {
-            assert(static_cast<int32_t>(std::ranges::distance(qual)) == core.l_seq);
+            if (std::ranges::distance(qual) != core.l_seq)
+                throw format_error{detail::to_string("Expected quality of same length as sequence with size ",
+                                                     core.l_seq, ". Got quality with size ",
+                                                     std::ranges::distance(qual), " instead.")};
+
             auto v = qual | std::views::transform([] (auto chr) { return static_cast<char>(to_rank(chr)); });
             std::ranges::copy_n(v.begin(), core.l_seq, stream_it);
         }
@@ -1179,7 +1192,8 @@ inline std::string format_bam::get_tag_dict_str(sam_tag_dictionary const & tag_d
         {
             int32_t sz{static_cast<int32_t>(arg.size())};
             result.append(reinterpret_cast<char *>(&sz), 4);
-            result.append(reinterpret_cast<char const *>(arg.data()), arg.size() * sizeof(value_type_t<T>));
+            result.append(reinterpret_cast<char const *>(arg.data()),
+                          arg.size() * sizeof(std::ranges::range_value_t<T>));
         }
     };
 

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -16,18 +16,20 @@
 #include <seqan3/range/views/complement.hpp>
 #include <seqan3/range/views/convert.hpp>
 #include <seqan3/range/views/deep.hpp>
+#include <seqan3/range/views/enforce_random_access.hpp>
 #include <seqan3/range/views/get.hpp>
 #include <seqan3/range/views/interleave.hpp>
 #include <seqan3/range/views/istreambuf.hpp>
+#include <seqan3/range/views/move.hpp>
 #include <seqan3/range/views/pairwise_combine.hpp>
 #include <seqan3/range/views/persist.hpp>
-#include <seqan3/range/views/enforce_random_access.hpp>
 #include <seqan3/range/views/rank_to.hpp>
 #include <seqan3/range/views/single_pass_input.hpp>
 #include <seqan3/range/views/take.hpp>
 #include <seqan3/range/views/take_exactly.hpp>
 #include <seqan3/range/views/take_line.hpp>
 #include <seqan3/range/views/take_until.hpp>
+#include <seqan3/range/views/to.hpp>
 #include <seqan3/range/views/to_char.hpp>
 #include <seqan3/range/views/to_rank.hpp>
 #include <seqan3/range/views/translate.hpp>
@@ -161,7 +163,7 @@
  *
  * **Returned range's reference type:** Conversely certain views make guarantees on the concepts satisfied by the
  * return range's reference type or even always have a fixed type, e.g. seqan3::views::complement operates on
- * nucleotides and of course also returns nucleotides and "seqan3::reference_t<urng_t>" would imply that
+ * nucleotides and of course also returns nucleotides and "std::ranges::range_reference_t<urng_t>" would imply that
  * the reference type is the same. However, and this is important to note, the reference type
  * of seqan3::views::complement has any actual `&` removed from the underlying ranges' reference type (if originally present),
  * this goes hand-in-hand with std::ranges::output_range being lost → original elements cannot be written to through

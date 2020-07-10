@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -16,9 +16,10 @@
 
 #include <sdsl/suffix_trees.hpp>
 
-#include <seqan3/alphabet/all.hpp>
+#include <seqan3/alphabet/adaptation/char.hpp>
+#include <seqan3/alphabet/adaptation/uint.hpp>
+#include <seqan3/alphabet/concept.hpp>
 #include <seqan3/core/type_traits/range.hpp>
-#include <seqan3/range/views/join.hpp>
 #include <seqan3/range/views/slice.hpp>
 #include <seqan3/search/fm_index/bi_fm_index.hpp>
 #include <seqan3/std/ranges>
@@ -69,11 +70,11 @@ public:
      * \{
      */
     //!\brief Type for the unidirectional cursor on the original text.
-    using fwd_cursor = fm_index_cursor<fm_index<typename index_type::char_type,
+    using fwd_cursor = fm_index_cursor<fm_index<typename index_type::alphabet_type,
                                                 index_type::text_layout_mode,
                                                 typename index_type::sdsl_index_type>>;
     //!\brief Type for the unidirectional cursor on the reversed text.
-    using rev_cursor = fm_index_cursor<fm_index<typename index_type::char_type,
+    using rev_cursor = fm_index_cursor<fm_index<typename index_type::alphabet_type,
                                                 index_type::text_layout_mode,
                                                 typename index_type::sdsl_index_type>>;
     //!\}
@@ -81,10 +82,12 @@ public:
 private:
     //!\brief Type of the representation of characters in the underlying SDSL index.
     using sdsl_char_type = typename index_type::sdsl_char_type;
+    //!\brief Type of the SDSL index.
+    using sdsl_index_type = typename index_t::sdsl_index_type;
     //!\brief Type of the alphabet size in the underlying SDSL index.
     using sdsl_sigma_type = typename index_type::sdsl_sigma_type;
     //!\brief Alphabet type of the index.
-    using index_char_type = typename index_t::char_type;
+    using index_alphabet_type = typename index_t::alphabet_type;
 
     //!\brief Type of the underlying FM index.
     index_type const * index;
@@ -116,9 +119,9 @@ private:
     // need to store it twice. Once the cursor is switched, the information becomes invalid anyway.
 
     //!\brief Left suffix array interval of the parent node.
-    size_type parent_lb;
+    size_type parent_lb{};
     //!\brief Left suffix array interval of the parent node.
-    size_type parent_rb;
+    size_type parent_rb{};
     //!\brief Label of the last edge moved down. Needed for cycle_back() or cycle_front().
     sdsl_char_type _last_char;
     //\}
@@ -142,8 +145,7 @@ private:
     }
 
     //!\brief Optimized bidirectional search without alphabet mapping
-    template <detail::sdsl_index csa_t>
-    bool bidirectional_search(csa_t const & csa, sdsl_char_type const c,
+    bool bidirectional_search(sdsl_index_type const & csa, sdsl_char_type const c,
                               size_type & l_fwd, size_type & r_fwd,
                               size_type & l_bwd, size_type & r_bwd) const noexcept
     {
@@ -154,7 +156,7 @@ private:
         size_type _l_fwd, _r_fwd, _l_bwd, _r_bwd;
 
         size_type cc = c;
-        if constexpr(!std::same_as<typename csa_t::alphabet_type, sdsl::plain_byte_alphabet>)
+        if constexpr(!std::same_as<index_alphabet_type, sdsl::plain_byte_alphabet>)
         {
             cc = csa.char2comp[c];
             if (cc == 0 && c > 0) // [[unlikely]]
@@ -196,8 +198,7 @@ private:
     }
 
     //!\brief Optimized bidirectional search for cycle_back() and cycle_front() without alphabet mapping
-    template <detail::sdsl_index csa_t>
-    bool bidirectional_search_cycle(csa_t const & csa, sdsl_char_type const c,
+    bool bidirectional_search_cycle(sdsl_index_type const & csa, sdsl_char_type const c,
                                     size_type const l_parent, size_type const r_parent,
                                     size_type & l_fwd, size_type & r_fwd,
                                     size_type & l_bwd, size_type & r_bwd) const noexcept
@@ -205,7 +206,7 @@ private:
         assert((l_parent <= r_parent) && (r_parent < csa.size()));
 
         size_type c_begin;
-        if constexpr(std::same_as<typename csa_t::alphabet_type, sdsl::plain_byte_alphabet>)
+        if constexpr(std::same_as<index_alphabet_type, sdsl::plain_byte_alphabet>)
             c_begin = csa.C[c]; // TODO: check whether this can be removed
         else
             c_begin = csa.C[csa.char2comp[c]];
@@ -416,14 +417,18 @@ public:
         fwd_cursor_last_used = true;
     #endif
 
-        static_assert(std::convertible_to<char_t, index_char_type>,
+        static_assert(std::convertible_to<char_t, index_alphabet_type>,
                      "The character must be convertible to the alphabet of the index.");
 
         assert(index != nullptr);
+        // The rank cannot exceed 255 for single text and 254 for text collections as they are reserved as sentinels
+        // for the indexed text.
+        assert(seqan3::to_rank(static_cast<index_alphabet_type>(c)) <
+               ((index_type::text_layout_mode == text_layout::single) ? 255 : 254));
 
         size_type new_parent_lb = fwd_lb, new_parent_rb = fwd_rb;
 
-        auto c_char = to_rank(static_cast<index_char_type>(c)) + 1;
+        auto c_char = seqan3::to_rank(static_cast<index_alphabet_type>(c)) + 1;
         if (bidirectional_search(index->fwd_fm.index, c_char, fwd_lb, fwd_rb, rev_lb, rev_rb))
         {
             parent_lb = new_parent_lb;
@@ -435,6 +440,16 @@ public:
             return true;
         }
         return false;
+    }
+
+    //!\overload
+    template <typename char_type>
+    //!\cond
+        requires seqan3::detail::is_char_adaptation_v<char_type>
+    //!\endcond
+    bool extend_right(char_type const * cstring) noexcept
+    {
+        return extend_right(std::basic_string_view<char_type>{cstring});
     }
 
     /*!\brief Tries to extend the query by the character `c` to the left.
@@ -457,14 +472,18 @@ public:
         fwd_cursor_last_used = false;
     #endif
 
-        static_assert(std::convertible_to<char_t, index_char_type>,
+        static_assert(std::convertible_to<char_t, index_alphabet_type>,
                       "The character must be convertible to the alphabet of the index.");
 
         assert(index != nullptr);
+        // The rank cannot exceed 255 for single text and 254 for text collections as they are reserved as sentinels
+        // for the indexed text.
+        assert(seqan3::to_rank(static_cast<index_alphabet_type>(c)) <
+               ((index_type::text_layout_mode == text_layout::single) ? 255 : 254));
 
         size_type new_parent_lb = rev_lb, new_parent_rb = rev_rb;
 
-        auto c_char = to_rank(static_cast<index_char_type>(c)) + 1;
+        auto c_char = seqan3::to_rank(static_cast<index_alphabet_type>(c)) + 1;
         if (bidirectional_search(index->rev_fm.index, c_char, rev_lb, rev_rb, fwd_lb, fwd_rb))
         {
             parent_lb = new_parent_lb;
@@ -476,6 +495,16 @@ public:
             return true;
         }
         return false;
+    }
+
+    //!\overload
+    template <typename char_type>
+    //!\cond
+        requires seqan3::detail::is_char_adaptation_v<char_type>
+    //!\endcond
+    bool extend_left(char_type const * cstring) noexcept
+    {
+        return extend_left(std::basic_string_view<char_type>{cstring});
     }
 
     /*!\brief Tries to extend the query by `seq` to the right.
@@ -498,7 +527,7 @@ public:
     bool extend_right(seq_t && seq) noexcept
     {
         static_assert(std::ranges::forward_range<seq_t>, "The query must model forward_range.");
-        static_assert(std::convertible_to<innermost_value_type_t<seq_t>, index_char_type>,
+        static_assert(std::convertible_to<innermost_value_type_t<seq_t>, index_alphabet_type>,
                       "The alphabet of the sequence must be convertible to the alphabet of the index.");
 
         assert(index != nullptr);
@@ -517,7 +546,12 @@ public:
 
         for (auto it = first; it != last; ++len, ++it)
         {
-            c = to_rank(static_cast<index_char_type>(*it)) + 1;
+            // The rank cannot exceed 255 for single text and 254 for text collections as they are reserved as sentinels
+            // for the indexed text.
+            assert(seqan3::to_rank(static_cast<index_alphabet_type>(*it)) <
+                   ((index_type::text_layout_mode == text_layout::single) ? 255 : 254));
+
+            c = seqan3::to_rank(static_cast<index_alphabet_type>(*it)) + 1;
 
             new_parent_lb = _fwd_lb;
             new_parent_rb = _fwd_rb;
@@ -563,7 +597,7 @@ public:
     bool extend_left(seq_t && seq) noexcept
     {
         static_assert(std::ranges::bidirectional_range<seq_t>, "The query must model bidirectional_range.");
-        static_assert(std::convertible_to<innermost_value_type_t<seq_t>, index_char_type>,
+        static_assert(std::convertible_to<innermost_value_type_t<seq_t>, index_alphabet_type>,
                       "The alphabet of the sequence must be convertible to the alphabet of the index.");
         assert(index != nullptr);
 
@@ -584,7 +618,12 @@ public:
 
         for (auto it = first; it != last; ++len, ++it)
         {
-            c = to_rank(static_cast<index_char_type>(*it)) + 1;
+            // The rank cannot exceed 255 for single text and 254 for text collections as they are reserved as sentinels
+            // for the indexed text.
+            assert(seqan3::to_rank(static_cast<index_alphabet_type>(*it)) <
+                   ((index_type::text_layout_mode == text_layout::single) ? 255 : 254));
+
+            c = seqan3::to_rank(static_cast<index_alphabet_type>(*it)) + 1;
 
             new_parent_lb = _rev_lb;
             new_parent_rb = _rev_rb;
@@ -868,7 +907,7 @@ public:
     {
         static_assert(std::ranges::input_range<text_t>, "The text must model input_range.");
         static_assert(dimension_v<text_t> == 1, "The input cannot be a text collection.");
-        static_assert(std::same_as<innermost_value_type_t<text_t>, index_char_type>,
+        static_assert(std::same_as<innermost_value_type_t<text_t>, index_alphabet_type>,
                       "The alphabet types of the given text and index differ.");
         assert(index != nullptr);
 
@@ -885,13 +924,26 @@ public:
     {
         static_assert(std::ranges::input_range<text_t>, "The text collection must model input_range.");
         static_assert(dimension_v<text_t> == 2, "The input must be a text collection.");
-        static_assert(std::same_as<innermost_value_type_t<text_t>, index_char_type>,
+        static_assert(std::same_as<innermost_value_type_t<text_t>, index_alphabet_type>,
                       "The alphabet types of the given text and index differ.");
         assert(index != nullptr);
 
-        size_type const loc = offset() - index->fwd_fm.index[fwd_lb];
-        size_type const query_begin = loc - index->fwd_fm.text_begin_rs.rank(loc + 1) + 1; // Substract delimiters
-        return text | views::join | views::slice(query_begin, query_begin + query_length());
+        // Position of query in concatenated text.
+        size_type const location = offset() - index->fwd_fm.index[fwd_lb];
+
+        // The rank represents the number of start positions of the individual sequences/texts in the collection
+        // before position `location + 1` and thereby also the number of delimiters.
+        size_type const rank = index->fwd_fm.text_begin_rs.rank(location + 1);
+        assert(rank > 0);
+        size_type const text_id = rank - 1;
+
+        // The start location of the `text_id`-th text in the sequence (position of the `rank`-th 1 in the bitvector).
+        size_type const start_location = index->fwd_fm.text_begin_ss.select(rank);
+        // Substract lengths of previous sequences.
+        size_type const query_begin = location - start_location;
+
+        // Take subtext, slice query out of it
+        return text[text_id] | views::slice(query_begin, query_begin + query_length());
     }
 
     /*!\brief Counts the number of occurrences of the searched query in the text.

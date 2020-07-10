@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -18,8 +18,6 @@
 #include <seqan3/range/views/take.hpp>
 #include <seqan3/range/views/take_exactly.hpp>
 
-using namespace seqan3;
-
 // ============================================================================
 //  sequential_read
 // ============================================================================
@@ -35,8 +33,8 @@ void sequential_read(benchmark::State & state)
 
     uint8_t dummy = 0;
 
-    // if single_pass, add views::single_pass_input, otherwise just &
-    using single_t = std::conditional_t<single_pass, decltype(c | views::single_pass_input), container_t &>;
+    // if single_pass, add seqan3::views::single_pass_input, otherwise just &
+    using single_t = std::conditional_t<single_pass, decltype(c | seqan3::views::single_pass_input), container_t &>;
 
     if constexpr (std::same_as<adaptor_t, void>)
     {

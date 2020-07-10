@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -27,11 +27,28 @@
 namespace seqan3::detail
 {
 
+/*!\brief Internal class used to expose the actual format interface to read structure records from the file.
+ * \ingroup structure_file
+ *
+ * \tparam format_type The type of the format to be exposed.
+ *
+ * \details
+ *
+ * Exposes the protected member function `read_structure_record` from the given `format_type`, such that the file can
+ * call the proper function for the selected format.
+ */
 template <typename format_type>
 struct structure_file_input_format_exposer : public format_type
 {
 public:
-    using format_type::read_structure_record;
+    // Can't use `using format_type::read_structure_record` as it produces a hard failure in the format concept check
+    // for types that do not model the format concept, i.e. don't offer the proper read_structure_record interface.
+    //!\brief Forwards to the seqan3::structure_file_input_format::read_structure_record interface.
+    template <typename ...ts>
+    void read_structure_record(ts && ...args)
+    {
+        format_type::read_structure_record(std::forward<ts>(args)...);
+    }
 };
 
 } // namespace seqan3::detail
@@ -100,31 +117,31 @@ SEQAN3_CONCEPT structure_file_input_format = requires(detail::structure_file_inp
  *                                offset_type & offset)
  * \brief Read from the specified stream and back-insert into the given field buffers.
  * \tparam stream_type      Input stream, must satisfy seqan3::Istream with `char`.
- * \tparam seq_type         Type of the seqan3::field::SEQ input; must satisfy std::ranges::output_range
+ * \tparam seq_type         Type of the seqan3::field::seq input; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam id_type          Type of the seqan3::field::ID input; must satisfy std::ranges::output_range
+ * \tparam id_type          Type of the seqan3::field::id input; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam bpp_type         Type of the seqan3::field::BPP input; must satisfy std::ranges::output_range
+ * \tparam bpp_type         Type of the seqan3::field::bpp input; must satisfy std::ranges::output_range
  * over a set of pair of types satisfying std::is_floating_point and std::numeric_limits::is_integer, respectively.
- * \tparam structure_type   Type of the seqan3::field::STRUCTURE input; must satisfy std::ranges::output_range
+ * \tparam structure_type   Type of the seqan3::field::structure input; must satisfy std::ranges::output_range
  * over a seqan3::rna_structure_alphabet.
- * \tparam energy_type      Type of the seqan3::field::ENERGY input; must satisfy std::is_floating_point.
- * \tparam react_type       Type of the seqan3::field::REACT and seqan3::field::REACT_ERR input;
+ * \tparam energy_type      Type of the seqan3::field::energy input; must satisfy std::is_floating_point.
+ * \tparam react_type       Type of the seqan3::field::react and seqan3::field::react_err input;
  * must satisfy std::is_floating_point.
- * \tparam comment_type     Type of the seqan3::field::COMMENT input; must satisfy std::ranges::output_range
+ * \tparam comment_type     Type of the seqan3::field::comment input; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam offset_type      Type of the seqan3::field::OFFSET input; must satisfy std::numeric_limits::is_integer.
+ * \tparam offset_type      Type of the seqan3::field::offset input; must satisfy std::numeric_limits::is_integer.
  * \param[in,out] stream    The input stream to read from.
  * \param[in]     options   File specific options passed to the format.
- * \param[out]    seq       The buffer for seqan3::field::SEQ input, i.e. the "sequence".
- * \param[out]    id        The buffer for seqan3::field::ID input, e.g. the header line.
- * \param[out]    bpp       The buffer for seqan3::field::BPP input.
- * \param[out]    structure The buffer for seqan3::field::STRUCTURE input.
- * \param[out]    energy    The buffer for seqan3::field::ENERGY input.
- * \param[out]    react     The buffer for seqan3::field::REACT input.
- * \param[out]    react_err The buffer for seqan3::field::REACT_ERR input.
- * \param[out]    comment   The buffer for seqan3::field::COMMENT input.
- * \param[out]    offset    The buffer for seqan3::field::OFFSET input.
+ * \param[out]    seq       The buffer for seqan3::field::seq input, i.e. the "sequence".
+ * \param[out]    id        The buffer for seqan3::field::id input, e.g. the header line.
+ * \param[out]    bpp       The buffer for seqan3::field::bpp input.
+ * \param[out]    structure The buffer for seqan3::field::structure input.
+ * \param[out]    energy    The buffer for seqan3::field::energy input.
+ * \param[out]    react     The buffer for seqan3::field::react input.
+ * \param[out]    react_err The buffer for seqan3::field::react_err input.
+ * \param[out]    comment   The buffer for seqan3::field::comment input.
+ * \param[out]    offset    The buffer for seqan3::field::offset input.
  *
  * \details
  *
@@ -133,8 +150,8 @@ SEQAN3_CONCEPT structure_file_input_format = requires(detail::structure_file_inp
  *   * The function must also accept std::ignore as parameter for any of the fields.
  *     [This is enforced by the concept checker!]
  *   * In this case the data read for that field shall be discarded by the format.
- *   * Instead of passing the fields seqan3::field::SEQ and seqan3::field::STRUCTURE, you may also pass
- *     seqan3::field::STRUCTURED_SEQ to both parameters. If you do, the seqan3::value_type_t of the argument must be
+ *   * Instead of passing the fields seqan3::field::seq and seqan3::field::structure, you may also pass
+ *     seqan3::field::structured_seq to both parameters. If you do, the std::ranges::range_value_t of the argument must be
  *     a specialisation of seqan3::structured_rna and the second template parameter to
  *     seqan3::structure_file_input_options must be set to true.
  */

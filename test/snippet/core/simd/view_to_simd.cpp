@@ -1,6 +1,7 @@
 #include <vector>
 
 #include <seqan3/alphabet/nucleotide/dna4.hpp>
+#include <seqan3/core/debug_stream.hpp>
 #include <seqan3/core/simd/all.hpp>
 
 using uint16x8_t = seqan3::simd_type_t<uint16_t, 8>;
@@ -23,7 +24,7 @@ int main()
     auto to_soa = batch | seqan3::views::to_simd<uint16x8_t>(8);
 
     size_t chunk_count = 0;
-    for (auto & chunk : to_soa)
+    for (auto && chunk : to_soa)
     {
         seqan3::debug_stream << "Chunk " << chunk_count++ << ":\n";
         for (auto & vec : chunk)

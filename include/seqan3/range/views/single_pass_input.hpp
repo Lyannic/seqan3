@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -12,8 +12,6 @@
 
 #pragma once
 
-#include <seqan3/core/type_traits/all.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/views/detail.hpp>
 #include <seqan3/std/concepts>
 #include <seqan3/std/iterator>
@@ -137,7 +135,7 @@ public:
     //!\brief Returns a sentinel.
     sentinel end()
     {
-        return {seqan3::end(state_ptr->urng)};
+        return {std::ranges::end(state_ptr->urng)};
     }
 
     //!\brief Const version of end is deleted, since the underlying view_state must be mutable.
@@ -197,13 +195,13 @@ public:
      * \{
      */
     //!\brief Difference type.
-    using difference_type   = difference_type_t<base_iterator_type>;
+    using difference_type   = std::iter_difference_t<base_iterator_type>;
     //!\brief Value type.
-    using value_type        = value_type_t<base_iterator_type>;
+    using value_type        = std::iter_value_t<base_iterator_type>;
     //!\brief Pointer type.
     using pointer           = typename std::iterator_traits<base_iterator_type>::pointer;
     //!\brief Reference type.
-    using reference         = reference_t<base_iterator_type>;
+    using reference         = std::iter_reference_t<base_iterator_type>;
     //!\brief Iterator category.
     using iterator_category = std::input_iterator_tag;
     //!\}
@@ -362,7 +360,7 @@ namespace seqan3::views
  * | std::ranges::output_range        |                                       | *preserved*                                        |
  * | seqan3::const_iterable_range     |                                       | *lost*                                             |
  * |                                  |                                       |                                                    |
- * | std::ranges::range_reference_t   |                                       | seqan3::reference_t<urng_t>                        |
+ * | std::ranges::range_reference_t   |                                       | std::ranges::range_reference_t<urng_t>             |
  *
  * See the \link views views submodule documentation \endlink for detailed descriptions of the view properties.
  *

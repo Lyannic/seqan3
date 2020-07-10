@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ template <template <typename ...> typename source_template,
 //!\cond
     requires requires ()
     {
-        std::declval<target_template<source_arg_types...>>();
+        typename target_template<source_arg_types...>;
     }
 //!\endcond
 struct transfer_template_args_onto<source_template<source_arg_types...>, target_template>
@@ -108,7 +108,7 @@ template <template <auto ...> typename source_template,
 //!\cond
     requires requires ()
     {
-        std::declval<target_template<source_varg_types...>>();
+        typename target_template<source_varg_types...>;
     }
 //!\endcond
 struct transfer_template_vargs_onto<source_template<source_varg_types...>, target_template>
@@ -147,8 +147,8 @@ struct is_type_specialisation_of : public std::false_type
 //!\overload
 template <typename source_t, template <typename ...> typename target_template>
 //!\cond
-    requires !std::same_as<transformation_trait_or_t<transfer_template_args_onto<source_t, target_template>, void>,
-                        void>
+    requires (!std::same_as<transformation_trait_or_t<transfer_template_args_onto<source_t, target_template>, void>,
+                            void>)
 //!\endcond
 struct is_type_specialisation_of<source_t, target_template> :
         std::is_same<source_t, transfer_template_args_onto_t<source_t, target_template>>
@@ -183,8 +183,8 @@ struct is_value_specialisation_of : std::false_type
  */
 template <typename source_t, template <auto ...> typename target_template>
 //!\cond
-    requires !std::same_as<transformation_trait_or_t<transfer_template_vargs_onto<source_t, target_template>, void>,
-                        void>
+    requires (!std::same_as<transformation_trait_or_t<transfer_template_vargs_onto<source_t, target_template>, void>,
+                            void>)
 //!\endcond
 struct is_value_specialisation_of<source_t, target_template> :
     std::is_same<source_t, transfer_template_vargs_onto_t<source_t, target_template>>

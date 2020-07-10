@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -15,24 +15,22 @@
 
 #include <seqan3/test/tmp_filename.hpp>
 
-using namespace seqan3;
-
 template <typename T>
 class istream : public ::testing::Test
 {};
 
 inline std::string const uncompressed{"The quick brown fox jumps over the lazy dog"};
 
-TYPED_TEST_CASE_P(istream);
+TYPED_TEST_SUITE_P(istream);
 
 TYPED_TEST_P(istream, concept_check)
 {
-    EXPECT_TRUE((input_stream_over<TypeParam, char>));
+    EXPECT_TRUE((seqan3::input_stream_over<TypeParam, char>));
 }
 
 TYPED_TEST_P(istream, input)
 {
-    test::tmp_filename filename{"istream_test"};
+    seqan3::test::tmp_filename filename{"istream_test"};
 
     {
         std::ofstream fi{filename.get_path()};
@@ -49,7 +47,7 @@ TYPED_TEST_P(istream, input)
 
 TYPED_TEST_P(istream, input_type_erased)
 {
-    test::tmp_filename filename{"istream_test"};
+    seqan3::test::tmp_filename filename{"istream_test"};
 
     {
         std::ofstream fi{filename.get_path()};
@@ -64,4 +62,4 @@ TYPED_TEST_P(istream, input_type_erased)
     EXPECT_EQ(buffer, uncompressed);
 }
 
-REGISTER_TYPED_TEST_CASE_P(istream, concept_check, input, input_type_erased);
+REGISTER_TYPED_TEST_SUITE_P(istream, concept_check, input, input_type_erased);

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -19,11 +19,10 @@
 
 #include <range/v3/view/slice.hpp>
 
+#include <seqan3/alphabet/adaptation/char.hpp>
 #include <seqan3/alphabet/concept.hpp>
 #include <seqan3/core/type_traits/range.hpp>
-#include <seqan3/range/views/join.hpp>
 #include <seqan3/range/views/slice.hpp>
-#include <seqan3/search/fm_index/detail/csa_alphabet_strategy.hpp>
 #include <seqan3/search/fm_index/detail/fm_index_cursor.hpp>
 #include <seqan3/search/fm_index/fm_index.hpp>
 #include <seqan3/std/ranges>
@@ -79,22 +78,24 @@ private:
     using node_type = detail::fm_index_cursor_node<index_t>;
     //!\brief Type of the representation of characters in the underlying SDSL index.
     using sdsl_char_type = typename index_type::sdsl_char_type;
+    //!\brief Type of the SDSL index.
+    using sdsl_index_type = typename index_t::sdsl_index_type;
     //!\brief Type of the alphabet size in the underlying SDSL index.
     using sdsl_sigma_type = typename index_type::sdsl_sigma_type;
     //!\brief Alphabet type of the index.
-    using index_char_type = typename index_t::char_type;
+    using index_alphabet_type = typename index_t::alphabet_type;
     //!\}
 
     //!\brief Underlying FM index.
-    index_type const * index;
+    index_type const * index{nullptr};
     //!\brief Left suffix array interval of the parent node. Needed for cycle_back().
-    size_type parent_lb;
+    size_type parent_lb{};
     //!\brief Right suffix array interval of the parent node. Needed for cycle_back().
-    size_type parent_rb;
+    size_type parent_rb{};
     //!\brief Underlying index from the SDSL.
-    node_type node;
+    node_type node{};
     //!\brief Alphabet size of the index without delimiters
-    sdsl_sigma_type sigma;
+    sdsl_sigma_type sigma{};
 
     template <typename _index_t>
     friend class bi_fm_index_cursor;
@@ -107,15 +108,17 @@ private:
     }
 
     //!\brief Optimized backward search without alphabet mapping
-    template <detail::sdsl_index csa_t>
-    bool backward_search(csa_t const & csa, sdsl_char_type const c, size_type & l, size_type & r) const noexcept
+    bool backward_search(sdsl_index_type const & csa,
+                         sdsl_char_type const c,
+                         size_type & l,
+                         size_type & r) const noexcept
     {
         assert(l <= r && r < csa.size());
 
         size_type _l, _r;
 
         size_type cc = c;
-        if constexpr(!std::same_as<typename csa_t::alphabet_type, sdsl::plain_byte_alphabet>)
+        if constexpr(!std::same_as<index_alphabet_type, sdsl::plain_byte_alphabet>)
         {
             cc = csa.char2comp[c];
             if (cc == 0 && c > 0) // [[unlikely]]
@@ -161,8 +164,10 @@ public:
     ~fm_index_cursor() = default;                                            //!< Defaulted.
 
     //! \brief Construct from given index.
-    fm_index_cursor(index_t const & _index) noexcept : index(&_index), node({0, _index.index.size() - 1, 0, 0}),
-                                                       sigma(_index.index.sigma - index_t::text_layout_mode)
+    fm_index_cursor(index_t const & _index) noexcept :
+        index(&_index),
+        node({0, _index.index.size() - 1, 0, 0}),
+        sigma(_index.index.sigma - index_t::text_layout_mode)
     {}
     //\}
 
@@ -263,14 +268,18 @@ public:
     template <typename char_t>
     bool extend_right(char_t const c) noexcept
     {
-        static_assert(std::convertible_to<char_t, index_char_type>,
+        static_assert(std::convertible_to<char_t, index_alphabet_type>,
                      "The character must be convertible to the alphabet of the index.");
 
         assert(index != nullptr);
+        // The rank cannot exceed 255 for single text and 254 for text collections as they are reserved as sentinels
+        // for the indexed text.
+        assert(seqan3::to_rank(static_cast<index_alphabet_type>(c)) <
+               ((index_type::text_layout_mode == text_layout::single) ? 255 : 254));
 
         size_type _lb = node.lb, _rb = node.rb;
 
-        sdsl_char_type c_char = to_rank(static_cast<index_char_type>(c)) + 1;
+        sdsl_char_type c_char = seqan3::to_rank(static_cast<index_alphabet_type>(c)) + 1;
 
         if (backward_search(index->index, c_char, _lb, _rb))
         {
@@ -280,6 +289,16 @@ public:
             return true;
         }
         return false;
+    }
+
+    //!\overload
+    template <typename char_type>
+    //!\cond
+        requires detail::is_char_adaptation_v<char_type>
+    //!\endcond
+    bool extend_right(char_type const * cstring) noexcept
+    {
+        return extend_right(std::basic_string_view<char_type>{cstring});
     }
 
     /*!\brief Tries to extend the query by `seq` to the right.
@@ -302,7 +321,7 @@ public:
     bool extend_right(seq_t && seq) noexcept
     {
         static_assert(std::ranges::forward_range<seq_t>, "The query must model forward_range.");
-        static_assert(std::convertible_to<innermost_value_type_t<seq_t>, index_char_type>,
+        static_assert(std::convertible_to<innermost_value_type_t<seq_t>, index_alphabet_type>,
                      "The alphabet of the sequence must be convertible to the alphabet of the index.");
 
         assert(index != nullptr); // range must not be empty!
@@ -315,7 +334,12 @@ public:
 
         for (auto it = std::ranges::begin(seq); it != std::ranges::end(seq); ++len, ++it)
         {
-            c = to_rank(static_cast<index_char_type>(*it)) + 1;
+            // The rank cannot exceed 255 for single text and 254 for text collections as they are reserved as sentinels
+            // for the indexed text.
+            assert(seqan3::to_rank(static_cast<index_alphabet_type>(*it)) <
+                   ((index_type::text_layout_mode == text_layout::single) ? 255 : 254));
+
+            c = seqan3::to_rank(static_cast<index_alphabet_type>(*it)) + 1;
 
             new_parent_lb = _lb;
             new_parent_rb = _rb;
@@ -447,7 +471,7 @@ public:
     {
         static_assert(std::ranges::input_range<text_t>, "The text must model input_range.");
         static_assert(dimension_v<text_t> == 1, "The input cannot be a text collection.");
-        static_assert(std::same_as<innermost_value_type_t<text_t>, index_char_type>,
+        static_assert(std::same_as<innermost_value_type_t<text_t>, index_alphabet_type>,
                       "The alphabet types of the given text and index differ.");
         assert(index != nullptr);
 
@@ -464,13 +488,26 @@ public:
     {
         static_assert(std::ranges::input_range<text_t>, "The text collection must model input_range.");
         static_assert(dimension_v<text_t> == 2, "The input must be a text collection.");
-        static_assert(std::same_as<innermost_value_type_t<text_t>, index_char_type>,
+        static_assert(std::same_as<innermost_value_type_t<text_t>, index_alphabet_type>,
                       "The alphabet types of the given text and index differ.");
         assert(index != nullptr);
 
-        size_type const loc = offset() - index->index[node.lb];
-        size_type const query_begin = loc - index->text_begin_rs.rank(loc + 1) + 1; // Substract delimiters
-        return text | views::join | views::slice(query_begin, query_begin + query_length());
+        // Position of query in concatenated text.
+        size_type const location = offset() - index->index[node.lb];
+
+        // The rank represents the number of start positions of the individual sequences/texts in the collection
+        // before position `location + 1` and thereby also the number of delimiters.
+        size_type const rank = index->text_begin_rs.rank(location + 1);
+        assert(rank > 0);
+        size_type const text_id = rank - 1;
+
+        // The start location of the `text_id`-th text in the sequence (position of the `rank`-th 1 in the bitvector).
+        size_type const start_location = index->text_begin_ss.select(rank);
+        // Substract lengths of previous sequences.
+        size_type const query_begin = location - start_location;
+
+        // Take subtext, slice query out of it
+        return text[text_id] | views::slice(query_begin, query_begin + query_length());
     }
 
     /*!\brief Counts the number of occurrences of the searched query in the text.

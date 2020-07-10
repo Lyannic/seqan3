@@ -1,6 +1,6 @@
 /// -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -12,13 +12,11 @@
 #include <seqan3/search/fm_index/all.hpp>
 #include <seqan3/test/cereal.hpp>
 
-using namespace seqan3;
-
 template <typename T>
 class fm_index_test : public ::testing::Test
 {};
 
-TYPED_TEST_CASE_P(fm_index_test);
+TYPED_TEST_SUITE_P(fm_index_test);
 
 TYPED_TEST_P(fm_index_test, ctr)
 {
@@ -91,10 +89,11 @@ TYPED_TEST_P(fm_index_test, size)
 TYPED_TEST_P(fm_index_test, concept_check)
 {
     using index_t = typename TypeParam::first_type;
-    EXPECT_TRUE(fm_index_specialisation<index_t>);
-    if constexpr (std::same_as<index_t, bi_fm_index<typename index_t::char_type, text_layout::single>>)
+    EXPECT_TRUE(seqan3::fm_index_specialisation<index_t>);
+    if constexpr (std::same_as<index_t, seqan3::bi_fm_index<typename index_t::alphabet_type,
+                                                            seqan3::text_layout::single>>)
     {
-        EXPECT_TRUE(bi_fm_index_specialisation<index_t>);
+        EXPECT_TRUE(seqan3::bi_fm_index_specialisation<index_t>);
     }
 }
 
@@ -115,7 +114,7 @@ TYPED_TEST_P(fm_index_test, serialisation)
     text_t text(10);
 
     index_t fm{text};
-    test::do_serialisation(fm);
+    seqan3::test::do_serialisation(fm);
 }
 
-REGISTER_TYPED_TEST_CASE_P(fm_index_test, ctr, swap, size, concept_check, empty_text, serialisation);
+REGISTER_TYPED_TEST_SUITE_P(fm_index_test, ctr, swap, size, concept_check, empty_text, serialisation);

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -26,9 +26,9 @@
 #include <seqan3/argument_parser/detail/format_html.hpp>
 #include <seqan3/argument_parser/detail/format_man.hpp>
 #include <seqan3/argument_parser/detail/format_parse.hpp>
+#include <seqan3/argument_parser/detail/terminal.hpp>
 #include <seqan3/argument_parser/detail/version_check.hpp>
 #include <seqan3/core/char_operations/predicate.hpp>
-#include <seqan3/core/detail/terminal.hpp>
 #include <seqan3/core/detail/test_accessor.hpp>
 #include <seqan3/core/detail/to_string.hpp>
 #include <seqan3/io/stream/concept.hpp>
@@ -114,10 +114,10 @@ namespace seqan3
  * Developer errors are those that violate the seqan3::argument_parser design
  * (e.g. calling the seqan3::argument_parser::parse function twice or specifying
  * two different options with the same identifier.)
- * In this case, a  seqan3::parser_design_error is thrown.
+ * In this case, a seqan3::design_error is thrown.
  *
  * The second kind are user errors, due to invalid command line calls. In this
- * case a seqan3::parser_invalid_argument is thrown.
+ * case a seqan3::argument_parser_error is thrown.
  *
  * For example:
  *
@@ -162,7 +162,7 @@ public:
     argument_parser(argument_parser &&) = default;                  //!< Defaulted.
     argument_parser & operator=(argument_parser &&) = default;      //!< Defaulted.
 
-    /*!\brief Initializes an argument_parser object from the command line arguments.
+    /*!\brief Initializes an seqan3::argument_parser object from the command line arguments.
      *
      * \param[in] app_name       The name of the app that is displayed on the help page.
      * \param[in] argc           The number of command line arguments.
@@ -170,7 +170,7 @@ public:
      * \param[in] version_check  Notify users about app version updates (default true).
      * \param[in] subcommands    A list of subcommands (see \link subcommand_arg_parse subcommand parsing \endlink).
      *
-     * \throws seqan3::parser_design_error if the application name contains illegal characters.
+     * \throws seqan3::design_error if the application name contains illegal characters.
      *
      * The application name must only contain alpha-numeric characters, '_' or '-',
      * i.e. the following regex must evaluate to true: `\"^[a-zA-Z0-9_-]+$\"`.
@@ -186,11 +186,11 @@ public:
         version_check_dev_decision{version_check}
     {
         if (!std::regex_match(app_name, app_name_regex))
-            throw parser_design_error{"The application name must only contain alpha-numeric characters "
+            throw design_error{"The application name must only contain alpha-numeric characters "
                                                "or '_' and '-' (regex: \"^[a-zA-Z0-9_-]+$\")."};
         for (auto & sub : subcommands)
             if (!std::regex_match(sub, std::regex{"^[a-zA-Z0-9_]+$"}))
-                throw parser_design_error{"The subcommand name must only contain alpha-numeric characters or '_'."};
+                throw design_error{"The subcommand name must only contain alpha-numeric characters or '_'."};
 
         info.app_name = std::move(app_name);
         init(argc, argv, std::move(subcommands));
@@ -226,23 +226,23 @@ public:
      * \param[in]  spec      Advanced option specification, see seqan3::option_spec.
      * \param[in]  validator The validator applied to the value after parsing (callable).
      *
-     * \throws seqan3::parser_design_error
+     * \throws seqan3::design_error
      */
     template <typename option_type, validator validator_type = detail::default_validator<option_type>>
     //!\cond
         requires (argument_parser_compatible_option<option_type> ||
-                  argument_parser_compatible_option<typename option_type::value_type>) &&
+                  argument_parser_compatible_option<std::ranges::range_value_t<option_type>>) &&
                   std::invocable<validator_type, option_type>
     //!\endcond
     void add_option(option_type & value,
                     char const short_id,
                     std::string const & long_id,
                     std::string const & desc,
-                    option_spec const & spec = option_spec::DEFAULT,
+                    option_spec const spec = option_spec::DEFAULT,
                     validator_type validator = validator_type{}) // copy to bind rvalues
     {
         if (sub_parser != nullptr)
-            throw parser_design_error{"You may only specify flags for the top-level parser."};
+            throw design_error{"You may only specify flags for the top-level parser."};
 
         verify_identifiers(short_id, long_id);
         // copy variables into the lambda because the calls are pushed to a stack
@@ -262,7 +262,7 @@ public:
                   char const short_id,
                   std::string const & long_id,
                   std::string const & desc,
-                  option_spec const & spec = option_spec::DEFAULT)
+                  option_spec const spec = option_spec::DEFAULT)
     {
         verify_identifiers(short_id, long_id);
         // copy variables into the lambda because the calls are pushed to a stack
@@ -272,9 +272,9 @@ public:
 
     /*!\brief Adds a positional option to the seqan3::argument_parser.
      *
-     * \tparam option_type Must have a formateted input function (stream >> value).
+     * \tparam option_type Must have a formatted input function (stream >> value).
      *                     If option_type is a container, its value type must have the
-     *                     formateted input function (exception: std::string is not
+     *                     formatted input function (exception: std::string is not
      *                     regarded as a container).
      *                     See <a href="https://en.cppreference.com/w/cpp/concept/FormattedInputFunction"> FormattedInputFunction </a>.
      * \tparam validator_type The type of validator to be applied to the option
@@ -284,7 +284,7 @@ public:
      * \param[in]  desc      The description of the positional option to be shown in the help page.
      * \param[in]  validator The validator applied to the value after parsing (callable).
      *
-     * \throws seqan3::parser_design_error
+     * \throws seqan3::design_error
      *
      * \details
      *
@@ -293,7 +293,7 @@ public:
     template <typename option_type, validator validator_type = detail::default_validator<option_type>>
     //!\cond
         requires (argument_parser_compatible_option<option_type> ||
-                  argument_parser_compatible_option<typename option_type::value_type>) &&
+                  argument_parser_compatible_option<std::ranges::range_value_t<option_type>>) &&
                   std::invocable<validator_type, option_type>
     //!\endcond
     void add_positional_option(option_type & value,
@@ -301,10 +301,10 @@ public:
                                validator_type validator = validator_type{}) // copy to bind rvalues
     {
         if (sub_parser != nullptr)
-            throw parser_design_error{"You may only specify flags for the top-level parser."};
+            throw design_error{"You may only specify flags for the top-level parser."};
 
         if (has_positional_list_option)
-            throw parser_design_error{"You added a positional option with a list value before so you cannot add "
+            throw design_error{"You added a positional option with a list value before so you cannot add "
                                       "any other positional options."};
 
         if constexpr (sequence_container<option_type> && !std::same_as<option_type, std::string>)
@@ -321,17 +321,14 @@ public:
      * \attention The function must be called at the very end of all parser
      * related code and should be enclosed in a try catch block.
      *
-     * \throws seqan3::parser_design_error if this function was already called before.
+     * \throws seqan3::design_error if this function was already called before.
      *
      * \throws seqan3::option_declared_multiple_times if an option that is not a list was declared multiple times.
-     * \throws seqan3::overflow_error_on_conversion if the numeric argument would cause an overflow error when
-     *                                              converted into the expected type.
-     * \throws seqan3::parser_invalid_argument if the user provided wrong arguments.
+     * \throws seqan3::user_input_error if an incorrect argument is given as (positional) option value.
      * \throws seqan3::required_option_missing if the user did not provide a required option.
      * \throws seqan3::too_many_arguments if the command line call contained more arguments than expected.
      * \throws seqan3::too_few_arguments if the command line call contained less arguments than expected.
-     * \throws seqan3::type_conversion_failed if the argument value could not be converted into the expected type.
-     * \throws seqan3::validation_failed if the argument was not excepted by the provided validator.
+     * \throws seqan3::validation_error if the argument was not excepted by the provided validator.
      *
      * \details
      *
@@ -389,7 +386,7 @@ public:
     void parse()
     {
         if (parse_was_called)
-            throw parser_design_error("The function parse() must only be called once!");
+            throw design_error("The function parse() must only be called once!");
 
         detail::version_checker app_version{info.app_name, info.version, info.url};
 
@@ -411,7 +408,7 @@ public:
     {
         if (sub_parser == nullptr)
         {
-            throw parser_design_error("You did not enable subcommand parsing on construction "
+            throw design_error("You did not enable subcommand parsing on construction "
                                       "so you cannot access the sub-parser!");
         }
 
@@ -423,38 +420,45 @@ public:
 
     /*!\brief Adds an help page section to the seqan3::argument_parser.
      * \param[in] title The title of the section.
+     * \param[in] spec Whether to always display this section title (seqan3::option_spec::DEFAULT), only when showing
+     *                 the advanced help page (seqan3::option_spec::ADVANCED) or never (seqan3::option_spec::HIDDEN).
      * \details This only affects the help page and other output formats.
      */
-    void add_section(std::string const & title)
+    void add_section(std::string const & title, option_spec const spec = option_spec::DEFAULT)
     {
-        std::visit([&] (auto & f) { f.add_section(title); }, format);
+        std::visit([&] (auto & f) { f.add_section(title, spec); }, format);
     }
 
     /*!\brief Adds an help page subsection to the seqan3::argument_parser.
      * \param[in] title The title of the subsection.
+     * \param[in] spec Whether to always display this subsection title (seqan3::option_spec::DEFAULT), only when showing
+     *                 the advanced help page (seqan3::option_spec::ADVANCED) or never (seqan3::option_spec::HIDDEN).
      * \details This only affects the help page and other output formats.
      */
-    void add_subsection(std::string const & title)
+    void add_subsection(std::string const & title, option_spec const spec = option_spec::DEFAULT)
     {
-        std::visit([&] (auto & f) { f.add_subsection(title); }, format);
+        std::visit([&] (auto & f) { f.add_subsection(title, spec); }, format);
     }
 
     /*!\brief Adds an help page text line to the seqan3::argument_parser.
      * \param[in] text The text to print.
-     * \param[in] line_is_paragraph Whether to insert as paragraph
-     *            or just a line (Default: false).
+     * \param[in] is_paragraph Whether to insert as paragraph or just a line (Default: false).
+     * \param[in] spec Whether to always display this line (seqan3::option_spec::DEFAULT), only when showing
+     *                 the advanced help page (seqan3::option_spec::ADVANCED) or never (seqan3::option_spec::HIDDEN).
      * \details
      * If the line is not a paragraph (false), only one line break is appended, otherwise two line breaks are appended.
      * This only affects the help page and other output formats.
      */
-    void add_line(std::string const & text, bool line_is_paragraph = false)
+    void add_line(std::string const & text, bool is_paragraph = false, option_spec const spec = option_spec::DEFAULT)
     {
-        std::visit([&] (auto & f) { f.add_line(text, line_is_paragraph); }, format);
+        std::visit([&] (auto & f) { f.add_line(text, is_paragraph, spec); }, format);
     }
 
     /*!\brief Adds an help page list item (key-value) to the seqan3::argument_parser.
      * \param[in] key  The key of the key-value pair of the list item.
      * \param[in] desc The value of the key-value pair of the list item.
+     * \param[in] spec Whether to always display this list item (seqan3::option_spec::DEFAULT), only when showing
+     *                 the advanced help page (seqan3::option_spec::ADVANCED) or never (seqan3::option_spec::HIDDEN).
      *
      * \details
      *
@@ -468,9 +472,9 @@ public:
      *            Super important integer for age.
      *```
      */
-    void add_list_item(std::string const & key, std::string const & desc)
+    void add_list_item(std::string const & key, std::string const & desc, option_spec const spec = option_spec::DEFAULT)
     {
-        std::visit([&] (auto & f) { f.add_list_item(key, desc); }, format);
+        std::visit([&] (auto & f) { f.add_list_item(key, desc, spec); }, format);
     }
     //!\}
 
@@ -537,7 +541,7 @@ private:
     //!\brief Whether the **user** specified to perform the version check (true) or not (false), default unset.
     std::optional<bool> version_check_user_decision;
 
-    //!\brief Befriend seqan3::detail::test_accessor to grant access to version_check_future.
+    //!\brief Befriend seqan3::detail::test_accessor to grant access to version_check_future and format.
     friend struct ::seqan3::detail::test_accessor;
 
     //!\brief The future object that keeps track of the detached version check call thread.
@@ -555,7 +559,11 @@ private:
      * \param[in] argv        The command line arguments.
      * \param[in] subcommands The subcommand key words to split command line arguments into top-level and sub-parser.
      *
-     * \throws seqan3::parser_invalid_argument
+     * \throws seqan3::too_few_arguments if option --export-help was specified without a value
+     * \throws seqan3::too_few_arguments if option --version-check was specified without a value
+     * \throws seqan3::validation_error if the value passed to option --export-help was invalid.
+     * \throws seqan3::validation_error if the value passed to option --version-check was invalid.
+     * \throws seqan3::too_few_arguments if a sub parser was configured at construction but a subcommand is missing.
      *
      * \details
      *
@@ -576,7 +584,7 @@ private:
      * - else the format is that to seqan3::detail::format_parse
      *
      * If `--export-help` is specified with a value other than html/man or ctd
-     * a parser_invalid_argument is thrown.
+     * an seqan3::argument_parser_error is thrown.
      */
     void init(int argc, char const * const * const argv, std::vector<std::string> const & subcommands)
     {
@@ -628,7 +636,7 @@ private:
                 else
                 {
                     if (argv_len <= i + 1)
-                        throw parser_invalid_argument{"Option --export-help must be followed by a value."};
+                        throw too_few_arguments{"Option --export-help must be followed by a value."};
                     export_format = {argv[i+1]};
                 }
 
@@ -640,7 +648,7 @@ private:
                 // else if (export_format == "ctd")
                 //     format = detail::format_ctd{};
                 else
-                    throw validation_failed{"Validation failed for option --export-help: "
+                    throw validation_error{"Validation failed for option --export-help: "
                                             "Value must be one of [html, man]"};
                 init_standard_options();
                 special_format_was_set = true;
@@ -653,7 +661,7 @@ private:
             else if (arg == "--version-check")
             {
                 if (++i >= argv_len)
-                    throw parser_invalid_argument{"Option --version-check must be followed by a value."};
+                    throw too_few_arguments{"Option --version-check must be followed by a value."};
 
                 arg = argv[i];
 
@@ -662,7 +670,7 @@ private:
                 else if (arg == "0")
                     version_check_user_decision = false;
                 else
-                    throw parser_invalid_argument{"Value for option --version-check must be 1 or 0."};
+                    throw validation_error{"Value for option --version-check must be 1 or 0."};
 
                 argc -= 2;
             }
@@ -676,8 +684,8 @@ private:
         {
             if (!subcommands.empty() && sub_parser == nullptr)
             {
-                throw parser_invalid_argument{detail::to_string("Please specify which sub program you want to use ",
-                                              "(one of ", subcommands, "). Use -h/--help for more information.")};
+                throw too_few_arguments{detail::to_string("Please specify which sub program you want to use ",
+                                        "(one of ", subcommands, "). Use -h/--help for more information.")};
             }
 
             format = detail::format_parse(argc, std::move(argv_new));
@@ -716,7 +724,7 @@ private:
     /*!\brief Verifies that the short and the long identifiers are correctly formatted.
      * \param[in] short_id The short identifier of the command line option/flag.
      * \param[in] long_id  The long identifier of the command line option/flag.
-     * \throws seqan3::parser_design_error
+     * \throws seqan3::design_error
      * \details Specifically, checks that identifiers haven't been used before,
      *          the length of long IDs is either empty or longer than one char,
      *          the characters used in the identifiers are all valid,
@@ -727,23 +735,23 @@ private:
         auto constexpr allowed = is_alnum || is_char<'_'> || is_char<'@'>;
 
         if (id_exists(short_id))
-            throw parser_design_error("Option Identifier '" + std::string(1, short_id) + "' was already used before.");
+            throw design_error("Option Identifier '" + std::string(1, short_id) + "' was already used before.");
         if (id_exists(long_id))
-            throw parser_design_error("Option Identifier '" + long_id + "' was already used before.");
+            throw design_error("Option Identifier '" + long_id + "' was already used before.");
         if (long_id.length() == 1)
-            throw parser_design_error("Long IDs must be either empty, or longer than one character.");
+            throw design_error("Long IDs must be either empty, or longer than one character.");
         if (!allowed(short_id) && !is_char<'\0'>(short_id))
-            throw parser_design_error("Option identifiers may only contain alphanumeric characters, '_', or '@'.");
+            throw design_error("Option identifiers may only contain alphanumeric characters, '_', or '@'.");
         if (long_id.size() > 0 && is_char<'-'>(long_id[0]))
-            throw parser_design_error("First character of long ID cannot be '-'.");
+            throw design_error("First character of long ID cannot be '-'.");
 
         std::for_each(long_id.begin(), long_id.end(), [&allowed] (char c)
                       {
                           if (!(allowed(c) || is_char<'-'>(c)))
-                              throw parser_design_error("Long identifiers may only contain alphanumeric characters, '_', '-', or '@'.");
+                              throw design_error("Long identifiers may only contain alphanumeric characters, '_', '-', or '@'.");
                       });
         if (detail::format_parse::is_empty_id(short_id) && detail::format_parse::is_empty_id(long_id))
-            throw parser_design_error("Option Identifiers cannot both be empty.");
+            throw design_error("Option Identifiers cannot both be empty.");
     }
 
     /*!\brief The format of the argument parser that decides the behavior when

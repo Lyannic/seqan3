@@ -17,9 +17,9 @@ int main(int argc, char ** argv)
     {
         myparser.parse();
     }
-    catch (seqan3::parser_invalid_argument const & ext) // the user did something wrong
+    catch (seqan3::argument_parser_error const & ext) // the user did something wrong
     {
-        std::cerr << "[PARSER ERROR] " << ext.what() << "\n"; // customize your error message
+        std::cerr << "[PARSER ERROR] " << ext.what() << '\n'; // customize your error message
         return -1;
     }
 
@@ -32,7 +32,7 @@ int main(int argc, char ** argv)
 
     avg = avg / grades.size();
 
-    seqan3::debug_stream << name << " has an average grade of " << avg << std::endl;
+    seqan3::debug_stream << name << " has an average grade of " << avg << '\n';
 
     return 0;
 }

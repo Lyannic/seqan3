@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -108,22 +108,25 @@ public:
         auto path_str = tmp_base_dir.string();  // Copy the underlying path to get access to the raw char *.
         if (char * f = mkdtemp(path_str.data()); f != nullptr)  // mkdtemp replaces XXXXXXXX in a safe and unique way.
         {
-            file_path = f;
-            file_path /= std::filesystem::path{f_name};
+            directory_path = f;
+            file_path = directory_path / std::filesystem::path{f_name};
             return;
         }
         throw std::filesystem::filesystem_error("Could not create temporary directory with mkdtemp!",
-                                           tmp_base_dir,
-                                           std::make_error_code(std::errc::bad_file_descriptor));
+                                                tmp_base_dir,
+                                                std::make_error_code(std::errc::bad_file_descriptor));
     }
 
-    /*!\brief Destructs the temporary file path.
-     * Removes the temporary directory and all it's subdirectories and files contained.
+    /*!\brief Destructs the temporary directory path.
+     *
+     * \details
+     *
+     * Removes the temporary directory and all its subdirectories and files contained.
      */
     ~tmp_filename()
     {
         [[maybe_unused]] std::error_code ec;
-        std::filesystem::remove_all(file_path.parent_path(), ec);
+        std::filesystem::remove_all(directory_path, ec);
     }
     //!\}
 
@@ -138,6 +141,8 @@ public:
 private:
     //!\brief The object storing the path to the temporary file.
     std::filesystem::path file_path{};
+    //!\brief The object storing the path to the temporary directory.
+    std::filesystem::path directory_path{};
 };
 /// \endcond
 } // namespace test

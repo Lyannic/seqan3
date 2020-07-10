@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -16,12 +16,14 @@
 #include <seqan3/std/ranges>
 #include <seqan3/test/tmp_filename.hpp>
 
-using namespace seqan3;
+using seqan3::operator""_dna5;
+
+using default_fields = seqan3::fields<seqan3::field::seq, seqan3::field::id, seqan3::field::qual>;
 
 TEST(sequence_file_input_iterator, concepts)
 {
-    using it_t = typename sequence_file_input<>::iterator;
-    using sen_t = typename sequence_file_input<>::sentinel;
+    using it_t = typename seqan3::sequence_file_input<>::iterator;
+    using sen_t = typename seqan3::sequence_file_input<>::sentinel;
 
     EXPECT_TRUE((std::input_iterator<it_t>));
     EXPECT_TRUE((std::sentinel_for<sen_t, it_t>));
@@ -39,7 +41,7 @@ struct sequence_file_input_f : public ::testing::Test
         "GGAGTATAATATATATATATATAT\n"
     };
 
-    dna5_vector seq_comp[3]
+    seqan3::dna5_vector seq_comp[3]
     {
         "ACGT"_dna5,
         "AGGCTGN"_dna5,
@@ -56,10 +58,10 @@ struct sequence_file_input_f : public ::testing::Test
 
 TEST_F(sequence_file_input_f, concepts)
 {
-    using t = sequence_file_input<>;
+    using t = seqan3::sequence_file_input<>;
     EXPECT_TRUE((std::ranges::input_range<t>));
 
-    using ct = sequence_file_input<> const;
+    using ct = seqan3::sequence_file_input<> const;
     // not const-iterable
     EXPECT_FALSE((std::ranges::input_range<ct>));
 }
@@ -68,111 +70,113 @@ TEST_F(sequence_file_input_f, construct_by_filename)
 {
     /* just the filename */
     {
-        test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
+        seqan3::test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
 
         {
             std::ofstream filecreator{filename.get_path(), std::ios::out | std::ios::binary};
         }
 
-        EXPECT_NO_THROW( sequence_file_input<>{filename.get_path()} );
+        EXPECT_NO_THROW( seqan3::sequence_file_input<>{filename.get_path()} );
     }
 
     // correct format check is done by tests of that format
 
     /* wrong extension */
     {
-        test::tmp_filename filename{"sequence_file_input_constructor.xyz"};
+        seqan3::test::tmp_filename filename{"sequence_file_input_constructor.xyz"};
         std::ofstream filecreator{filename.get_path(), std::ios::out | std::ios::binary};
-        EXPECT_THROW( sequence_file_input<>{filename.get_path()} ,
-                      unhandled_extension_error );
+        EXPECT_THROW( seqan3::sequence_file_input<>{filename.get_path()} ,
+                      seqan3::unhandled_extension_error );
     }
 
     /* non-existent file */
     {
-        EXPECT_THROW( sequence_file_input<>{"/dev/nonexistant/foobarOOO"},
-                      file_open_error);
+        EXPECT_THROW( seqan3::sequence_file_input<>{"/dev/nonexistant/foobarOOO"},
+                      seqan3::file_open_error);
     }
 
     /* filename + fields */
     {
-        test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
+        using fields_seq = seqan3::fields<seqan3::field::seq>;
+
+        seqan3::test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
 
         {
             std::ofstream filecreator{filename.get_path(), std::ios::out | std::ios::binary};
         }
 
-        EXPECT_NO_THROW(( sequence_file_input<sequence_file_input_default_traits_dna,
-                                             fields<field::SEQ>,
-                                             type_list<format_fasta>,
-                                             char>{filename.get_path(), fields<field::SEQ>{}} ));
+        EXPECT_NO_THROW(( seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_dna,
+                                                      fields_seq,
+                                                      seqan3::type_list<seqan3::format_fasta>>{filename.get_path(),
+                                                                                               fields_seq{}} ));
     }
 }
 
 TEST_F(sequence_file_input_f, construct_from_stream)
 {
     /* stream + format_tag */
-    EXPECT_NO_THROW(( sequence_file_input<sequence_file_input_default_traits_dna,
-                                         fields<field::SEQ, field::ID, field::QUAL>,
-                                         type_list<format_fasta>,
-                                         char>{std::istringstream{input},
-                                               format_fasta{}} ));
-
+    EXPECT_NO_THROW(( seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_dna,
+                                                  default_fields,
+                                                  seqan3::type_list<seqan3::format_fasta>>{std::istringstream{input},
+                                                                                           seqan3::format_fasta{}} ));
 
     /* stream + format_tag + fields */
-    EXPECT_NO_THROW(( sequence_file_input<sequence_file_input_default_traits_dna,
-                                          fields<field::SEQ, field::ID, field::QUAL>,
-                                          type_list<format_fasta>,
-                                          char>{std::istringstream{input},
-                                                format_fasta{},
-                                                fields<field::SEQ, field::ID, field::QUAL>{}} ));
+    EXPECT_NO_THROW(( seqan3::sequence_file_input<seqan3::sequence_file_input_default_traits_dna,
+                                                  default_fields,
+                                                  seqan3::type_list<seqan3::format_fasta>>{std::istringstream{input},
+                                                                                           seqan3::format_fasta{},
+                                                                                           default_fields{}} ));
 }
 
 TEST_F(sequence_file_input_f, default_template_args_and_deduction_guides)
 {
-    using comp0 = sequence_file_input_default_traits_dna;
-    using comp1 = fields<field::SEQ, field::ID, field::QUAL>;
-    using comp2 = type_list<format_embl, format_fasta, format_fastq, format_genbank, format_sam>;
+    using comp0 = seqan3::sequence_file_input_default_traits_dna;
+    using comp2 = seqan3::type_list<seqan3::format_embl,
+                                    seqan3::format_fasta,
+                                    seqan3::format_fastq,
+                                    seqan3::format_genbank,
+                                    seqan3::format_sam>;
     using comp3 = char;
 
     /* default template args */
     {
-        using t = sequence_file_input<>;
+        using t = seqan3::sequence_file_input<>;
         EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, comp1>));
+        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, default_fields>));
         EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      comp2>));
         EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   comp3>));
     }
 
     /* guided filename constructor */
     {
-        test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
+        seqan3::test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
 
         {
             std::ofstream filecreator{filename.get_path(), std::ios::out | std::ios::binary};
         }
 
-        sequence_file_input fin{filename.get_path()};
+        seqan3::sequence_file_input fin{filename.get_path()};
 
         using t = decltype(fin);
         EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, comp1>));
+        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, default_fields>));
         EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      comp2>));
         EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   comp3>));
     }
 
     /* guided filename constructor + custom fields */
     {
-        test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
+        seqan3::test::tmp_filename filename{"sequence_file_input_constructor.fasta"};
 
         {
             std::ofstream filecreator{filename.get_path(), std::ios::out | std::ios::binary};
         }
 
-        sequence_file_input fin{filename.get_path(), fields<field::SEQ>{}};
+        seqan3::sequence_file_input fin{filename.get_path(), seqan3::fields<seqan3::field::seq>{}};
 
         using t = decltype(fin);
         EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, fields<field::SEQ>>));                   // changed
+        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, seqan3::fields<seqan3::field::seq>>)); // changed
         EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      comp2>));
         EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   comp3>));
     }
@@ -180,65 +184,40 @@ TEST_F(sequence_file_input_f, default_template_args_and_deduction_guides)
     /* guided stream constructor */
     {
         std::istringstream ext{input};
-        sequence_file_input fin{ext, format_fasta{}};
+        seqan3::sequence_file_input fin{ext, seqan3::format_fasta{}};
 
         using t = decltype(fin);
         EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, comp1>));
-        EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      type_list<format_fasta>>));// changed
+        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, default_fields>));
+        EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      seqan3::type_list<seqan3::format_fasta>>)); // changed
         EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   comp3>));
     }
 
     /* guided stream temporary constructor */
     {
-        sequence_file_input fin{std::istringstream{input}, format_fasta{}};
+        seqan3::sequence_file_input fin{std::istringstream{input}, seqan3::format_fasta{}};
 
         using t = decltype(fin);
         EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, comp1>));
-        EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      type_list<format_fasta>>));// changed
+        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, default_fields>));
+        EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      seqan3::type_list<seqan3::format_fasta>>)); // changed
         EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   comp3>));
-    }
-
-    /* guided stream constructor + custom fields + different stream char type */
-    {
-        auto winput = input | views::convert<wchar_t> | views::to<std::wstring>;
-        std::wistringstream ext{winput};
-        sequence_file_input fin{ext, format_fasta{}, fields<field::SEQ>{}};
-
-        using t = decltype(fin);
-        EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, fields<field::SEQ>>));                   // changed
-        EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      type_list<format_fasta>>));              // changed
-        EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   wchar_t>));                              // changed
-    }
-
-    /* guided stream temporary constructor + custom fields + different stream char type */
-    {
-        auto winput = input | views::convert<wchar_t> | views::to<std::wstring>;
-        sequence_file_input fin{std::wistringstream{winput}, format_fasta{}, fields<field::SEQ>{}};
-
-        using t = decltype(fin);
-        EXPECT_TRUE((std::is_same_v<typename t::traits_type,        comp0>));
-        EXPECT_TRUE((std::is_same_v<typename t::selected_field_ids, fields<field::SEQ>>));                   // changed
-        EXPECT_TRUE((std::is_same_v<typename t::valid_formats,      type_list<format_fasta>>));              // changed
-        EXPECT_TRUE((std::is_same_v<typename t::stream_char_type,   wchar_t>));                              // changed
     }
 }
 
 TEST_F(sequence_file_input_f, empty_file)
 {
-    test::tmp_filename filename{"empty.fasta"};
+    seqan3::test::tmp_filename filename{"empty.fasta"};
     std::ofstream filecreator{filename.get_path(), std::ios::out | std::ios::binary};
 
-    sequence_file_input fin{filename.get_path()};
+    seqan3::sequence_file_input fin{filename.get_path()};
 
     EXPECT_EQ(fin.begin(), fin.end());
 }
 
 TEST_F(sequence_file_input_f, empty_stream)
 {
-    sequence_file_input fin{std::istringstream{std::string{}}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{std::string{}}, seqan3::format_fasta{}};
 
     EXPECT_EQ(fin.begin(), fin.end());
 }
@@ -246,14 +225,14 @@ TEST_F(sequence_file_input_f, empty_stream)
 TEST_F(sequence_file_input_f, record_reading)
 {
     /* record based reading */
-    sequence_file_input fin{std::istringstream{input}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{input}, seqan3::format_fasta{}};
 
     size_t counter = 0;
     for (auto & rec : fin)
     {
-        EXPECT_TRUE((std::ranges::equal(get<field::SEQ>(rec), seq_comp[counter])));
-        EXPECT_TRUE((std::ranges::equal(get<field::ID>(rec),  id_comp[counter])));
-        EXPECT_TRUE(empty(get<field::QUAL>(rec)));
+        EXPECT_TRUE((std::ranges::equal(seqan3::get<seqan3::field::seq>(rec), seq_comp[counter])));
+        EXPECT_TRUE((std::ranges::equal(seqan3::get<seqan3::field::id>(rec),  id_comp[counter])));
+        EXPECT_TRUE(empty(seqan3::get<seqan3::field::qual>(rec)));
 
         counter++;
     }
@@ -264,7 +243,7 @@ TEST_F(sequence_file_input_f, record_reading)
 TEST_F(sequence_file_input_f, record_reading_struct_bind)
 {
     /* record based reading */
-    sequence_file_input fin{std::istringstream{input}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{input}, seqan3::format_fasta{}};
 
     size_t counter = 0;
     for (auto & [ seq, id, qual ] : fin)
@@ -282,14 +261,14 @@ TEST_F(sequence_file_input_f, record_reading_struct_bind)
 TEST_F(sequence_file_input_f, record_reading_custom_fields)
 {
     /* record based reading */
-    sequence_file_input fin{std::istringstream{input},
-                         format_fasta{},
-                         fields<field::ID, field::SEQ_QUAL>{}};
+    seqan3::sequence_file_input fin{std::istringstream{input},
+                                    seqan3::format_fasta{},
+                                    seqan3::fields<seqan3::field::id, seqan3::field::seq_qual>{}};
 
     size_t counter = 0;
     for (auto & [ id, seq_qual ] : fin)
     {
-        EXPECT_TRUE((std::ranges::equal(seq_qual | views::convert<dna5>, seq_comp[counter])));
+        EXPECT_TRUE((std::ranges::equal(seq_qual | seqan3::views::convert<seqan3::dna5>, seq_comp[counter])));
         EXPECT_TRUE((std::ranges::equal(id,  id_comp[counter])));
 
         counter++;
@@ -311,105 +290,37 @@ TEST_F(sequence_file_input_f, record_reading_custom_options)
     }};
 
     /* record based reading */
-    sequence_file_input fin{istream, format_fasta{}};
+    seqan3::sequence_file_input fin{istream, seqan3::format_fasta{}};
     fin.options.truncate_ids = true;
 
     auto it = fin.begin();
-    EXPECT_EQ(get<field::ID>(*it), "ID1");
+    EXPECT_EQ(seqan3::get<seqan3::field::id>(*it), "ID1");
     ++it;
-    EXPECT_EQ(get<field::ID>(*it), "ID2");
+    EXPECT_EQ(seqan3::get<seqan3::field::id>(*it), "ID2");
     ++it;
-    EXPECT_EQ(get<field::ID>(*it), "ID3");
+    EXPECT_EQ(seqan3::get<seqan3::field::id>(*it), "ID3");
 }
 
 TEST_F(sequence_file_input_f, file_view)
 {
-    sequence_file_input fin{std::istringstream{input}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{input}, seqan3::format_fasta{}};
 
     auto minimum_length_filter = std::views::filter([] (auto const & rec)
     {
-        return size(get<field::SEQ>(rec)) >= 5;
+        return size(seqan3::get<seqan3::field::seq>(rec)) >= 5;
     });
 
     size_t counter = 1; // the first record will be filtered out
     for (auto & rec : fin | minimum_length_filter)
     {
-        EXPECT_TRUE((std::ranges::equal(get<field::SEQ>(rec), seq_comp[counter])));
-        EXPECT_TRUE((std::ranges::equal(get<field::ID>(rec),  id_comp[counter])));
-        EXPECT_TRUE(empty(get<field::QUAL>(rec)));
+        EXPECT_TRUE((std::ranges::equal(seqan3::get<seqan3::field::seq>(rec), seq_comp[counter])));
+        EXPECT_TRUE((std::ranges::equal(seqan3::get<seqan3::field::id>(rec),  id_comp[counter])));
+        EXPECT_TRUE(empty(seqan3::get<seqan3::field::qual>(rec)));
 
         counter++;
     }
 
     EXPECT_EQ(counter, 3u);
-}
-
-TEST_F(sequence_file_input_f, column_reading)
-{
-    sequence_file_input fin{std::istringstream{input}, format_fasta{}};
-
-    auto & seqs  = get<field::SEQ>(fin);                                    // by field
-    auto & ids   = get<1>(fin);                                             // by index
-    auto & quals = get<typename decltype(fin)::quality_column_type>(fin);   // by type
-
-    ASSERT_EQ(seqs.size(), 3ul);
-    ASSERT_EQ(ids.size(), 3ul);
-    ASSERT_EQ(quals.size(), 3ul);
-
-    for (size_t i = 0; i < 3; ++i)
-    {
-        EXPECT_TRUE((std::ranges::equal(seqs[i], seq_comp[i])));
-        EXPECT_TRUE((std::ranges::equal(ids[i],  id_comp[i])));
-        EXPECT_TRUE(empty(quals[i]));
-    }
-}
-
-TEST_F(sequence_file_input_f, column_reading_temporary)
-{
-    sequence_file_input{std::istringstream{input}, format_fasta{}};
-
-    auto seqs = get<field::SEQ>(sequence_file_input{std::istringstream{input}, format_fasta{}});
-
-    ASSERT_EQ(seqs.size(), 3ul);
-
-    for (size_t i = 0; i < 3; ++i)
-    {
-        EXPECT_TRUE((std::ranges::equal(seqs[i], seq_comp[i])));
-    }
-}
-
-TEST_F(sequence_file_input_f, column_reading_decomposed)
-{
-    sequence_file_input fin{std::istringstream{input}, format_fasta{}};
-
-    auto & [ seqs, ids , quals ] = fin;
-
-    ASSERT_EQ(seqs.size(), 3ul);
-    ASSERT_EQ(ids.size(), 3ul);
-    ASSERT_EQ(quals.size(), 3ul);
-
-    for (size_t i = 0; i < 3; ++i)
-    {
-        EXPECT_TRUE((std::ranges::equal(seqs[i], seq_comp[i])));
-        EXPECT_TRUE((std::ranges::equal(ids[i],  id_comp[i])));
-        EXPECT_TRUE(empty(quals[i]));
-    }
-}
-
-TEST_F(sequence_file_input_f, column_reading_decomposed_temporary)
-{
-    auto && [ seqs, ids , quals ] = sequence_file_input{std::istringstream{input}, format_fasta{}};
-
-    ASSERT_EQ(seqs.size(), 3ul);
-    ASSERT_EQ(ids.size(), 3ul);
-    ASSERT_EQ(quals.size(), 3ul);
-
-    for (size_t i = 0; i < 3; ++i)
-    {
-        EXPECT_TRUE((std::ranges::equal(seqs[i], seq_comp[i])));
-        EXPECT_TRUE((std::ranges::equal(ids[i],  id_comp[i])));
-        EXPECT_TRUE(empty(quals[i]));
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -422,9 +333,9 @@ void decompression_impl(fixture_t & fix, input_file_t & fin)
     size_t counter = 0;
     for (auto & rec : fin)
     {
-        EXPECT_TRUE((std::ranges::equal(get<field::SEQ>(rec), fix.seq_comp[counter])));
-        EXPECT_TRUE((std::ranges::equal(get<field::ID>(rec),  fix.id_comp[counter])));
-        EXPECT_TRUE(empty(get<field::QUAL>(rec)));
+        EXPECT_TRUE((std::ranges::equal(seqan3::get<seqan3::field::seq>(rec), fix.seq_comp[counter])));
+        EXPECT_TRUE((std::ranges::equal(seqan3::get<seqan3::field::id>(rec),  fix.id_comp[counter])));
+        EXPECT_TRUE(empty(seqan3::get<seqan3::field::qual>(rec)));
 
         counter++;
     }
@@ -444,7 +355,7 @@ std::string input_gz
 
 TEST_F(sequence_file_input_f, decompression_by_filename_gz)
 {
-    test::tmp_filename filename{"sequence_file_output_test.fasta.gz"};
+    seqan3::test::tmp_filename filename{"sequence_file_output_test.fasta.gz"};
 
     {
         std::ofstream of{filename.get_path(), std::ios::binary};
@@ -452,14 +363,14 @@ TEST_F(sequence_file_input_f, decompression_by_filename_gz)
         std::copy(begin(input_gz), end(input_gz), std::ostreambuf_iterator<char>{of});
     }
 
-    sequence_file_input fin{filename.get_path()};
+    seqan3::sequence_file_input fin{filename.get_path()};
 
     decompression_impl(*this, fin);
 }
 
 TEST_F(sequence_file_input_f, decompression_by_stream_gz)
 {
-    sequence_file_input fin{std::istringstream{input_gz}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{input_gz}, seqan3::format_fasta{}};
 
     decompression_impl(*this, fin);
 }
@@ -472,7 +383,7 @@ TEST_F(sequence_file_input_f, read_empty_gz_file)
         '\x00', '\x03', '\x66', '\x6f', '\x6f', '\x00', '\x03', '\x00',
         '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00'
     };
-    sequence_file_input fin{std::istringstream{empty_zipped_file}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{empty_zipped_file}, seqan3::format_fasta{}};
 
     EXPECT_TRUE(fin.begin() == fin.end());
 }
@@ -491,7 +402,7 @@ std::string input_bgzf
 
 TEST_F(sequence_file_input_f, bgzf_decompression_by_filename_bgzf)
 {
-    test::tmp_filename filename{"sequence_file_output_test.fasta.bgzf"};
+    seqan3::test::tmp_filename filename{"sequence_file_output_test.fasta.bgzf"};
 
     {
         std::ofstream of{filename.get_path(), std::ios::binary};
@@ -499,27 +410,27 @@ TEST_F(sequence_file_input_f, bgzf_decompression_by_filename_bgzf)
         std::copy(input_bgzf.begin(), input_bgzf.end(), std::ostreambuf_iterator<char>{of});
     }
 
-    sequence_file_input fin{filename.get_path()};
+    seqan3::sequence_file_input fin{filename.get_path()};
 
     decompression_impl(*this, fin);
 }
 
 TEST_F(sequence_file_input_f, bgzf_decompression_by_filename_gz)
 {
-    test::tmp_filename filename{"sequence_file_output_test.fasta.gz"};
+    seqan3::test::tmp_filename filename{"sequence_file_output_test.fasta.gz"};
 
     {
         std::ofstream of{filename.get_path(), std::ios::binary};
         std::copy(input_bgzf.begin(), input_bgzf.end(), std::ostreambuf_iterator<char>{of});
     }
 
-    sequence_file_input fin{filename.get_path()};
+    seqan3::sequence_file_input fin{filename.get_path()};
     decompression_impl(*this, fin);
 }
 
 TEST_F(sequence_file_input_f, decompression_by_stream_bgzf)
 {
-    sequence_file_input fin{std::istringstream{input_bgzf}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{input_bgzf}, seqan3::format_fasta{}};
 
     decompression_impl(*this, fin);
 }
@@ -532,7 +443,7 @@ TEST_F(sequence_file_input_f, read_empty_bgzf_file)
         '\x06', '\x00', '\x42', '\x43', '\x02', '\x00', '\x1B', '\x00', '\x03', '\x00',
         '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00',
     };
-    sequence_file_input fin{std::istringstream{empty_bgzf_file}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{empty_bgzf_file}, seqan3::format_fasta{}};
 
     EXPECT_TRUE(fin.begin() == fin.end());
 }
@@ -551,7 +462,7 @@ std::string input_bz2
 
 TEST_F(sequence_file_input_f, decompression_by_filename_bz2)
 {
-    test::tmp_filename filename{"sequence_file_output_test.fasta.bz2"};
+    seqan3::test::tmp_filename filename{"sequence_file_output_test.fasta.bz2"};
 
     {
         std::ofstream of{filename.get_path(), std::ios::binary};
@@ -559,14 +470,14 @@ TEST_F(sequence_file_input_f, decompression_by_filename_bz2)
         std::copy(begin(input_bz2), end(input_bz2), std::ostreambuf_iterator<char>{of});
     }
 
-    sequence_file_input fin{filename.get_path()};
+    seqan3::sequence_file_input fin{filename.get_path()};
 
     decompression_impl(*this, fin);
 }
 
 TEST_F(sequence_file_input_f, decompression_by_stream_bz2)
 {
-    sequence_file_input fin{std::istringstream{input_bz2}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{input_bz2}, seqan3::format_fasta{}};
 
     decompression_impl(*this, fin);
 }
@@ -577,7 +488,7 @@ TEST_F(sequence_file_input_f, read_empty_bz2_file)
     {
         '\x42', '\x5a', '\x68', '\x39', '\x17', '\x72', '\x45', '\x38', '\x50', '\x90', '\x00', '\x00', '\x00', '\x00'
     };
-    sequence_file_input fin{std::istringstream{empty_zipped_file}, format_fasta{}};
+    seqan3::sequence_file_input fin{std::istringstream{empty_zipped_file}, seqan3::format_fasta{}};
 
     EXPECT_TRUE(fin.begin() == fin.end());
 }

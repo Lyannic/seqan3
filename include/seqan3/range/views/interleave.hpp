@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -22,7 +22,7 @@
 #include <seqan3/range/views/detail.hpp>
 #include <seqan3/range/views/join.hpp>
 #include <seqan3/range/views/persist.hpp>
-#include <seqan3/range/views/view_all.hpp>
+#include <seqan3/range/views/type_reduce.hpp>
 #include <seqan3/std/concepts>
 #include <seqan3/std/ranges>
 
@@ -48,7 +48,8 @@ template <std::ranges::random_access_range urng_t, std::ranges::random_access_ra
     //!\cond
     requires std::ranges::view<urng_t> && std::ranges::sized_range<urng_t> &&
              std::ranges::view<inserted_rng_t> && std::ranges::sized_range<inserted_rng_t> &&
-             std::common_reference_with<reference_t<urng_t>, reference_t<inserted_rng_t>>
+             std::common_reference_with<std::ranges::range_reference_t<urng_t>,
+                                        std::ranges::range_reference_t<inserted_rng_t>>
     //!\endcond
 class view_interleave : public std::ranges::view_interface<view_interleave<urng_t, inserted_rng_t>>
 {
@@ -65,16 +66,18 @@ public:
      * \{
      */
     //!\brief The reference_type.
-    using reference         = ranges::common_reference_t<reference_t<urng_t>, reference_t<inserted_rng_t>>;
+    using reference         = ranges::common_reference_t<std::ranges::range_reference_t<urng_t>,
+                                                         std::ranges::range_reference_t<inserted_rng_t>>;
     //!\brief The const_reference type is equal to the reference type.
     using const_reference   = detail::transformation_trait_or_t<
-                                ranges::common_reference<reference_t<urng_t const>, reference_t<inserted_rng_t const>>, void>;
+                                ranges::common_reference<std::ranges::range_reference_t<urng_t const>,
+                                                         std::ranges::range_reference_t<inserted_rng_t const>>, void>;
     //!\brief The value_type (which equals the reference_type with any references removed).
-    using value_type        = value_type_t<urng_t>;
+    using value_type        = std::ranges::range_value_t<urng_t>;
     //!\brief This resolves to range_type::size_type as the underlying range is guaranteed to be Sized.
-    using size_type         = size_type_t<urng_t>;
+    using size_type         = std::ranges::range_size_t<urng_t>;
     //!\brief A signed integer type, usually std::ptrdiff_t.
-    using difference_type   = difference_type_t<urng_t>;
+    using difference_type   = std::ranges::range_difference_t<urng_t>;
     //!\brief The iterator type of this view (a random access iterator).
     using iterator          = detail::random_access_iterator<view_interleave>;
     //!\brief The const_iterator type is equal to the iterator type.
@@ -100,7 +103,7 @@ public:
         urange{_urange}, step_size{_step_size}, inserted_range{_inserted_range}
     {}
 
-    /*!\brief Construct from a viewable_range urange and inserted_range by wrapping in a views::all.
+    /*!\brief Construct from a viewable_range urange and inserted_range by wrapping in a views::type_reduce.
      * \tparam    orng_t          A type that is the same as `urng_t` once wrapped in a view
      *                            (e.g. reference to container).
      * \tparam    oirng_t         A type that is the same as `inserted_rng_t` once wrapped in a view
@@ -111,11 +114,12 @@ public:
      */
     template <typename orng_t, typename oirng_t>
         //!\cond
-        requires std::constructible_from<urng_t, decltype(views::all(std::declval<orng_t>()))> &&
+        requires std::constructible_from<urng_t, decltype(views::type_reduce(std::declval<orng_t>()))> &&
                  std::constructible_from<inserted_rng_t, decltype(views::persist(std::declval<oirng_t>()))>
         //!\endcond
     view_interleave(orng_t && _urange, size_t const _step_size, oirng_t && _inserted_range) :
-        view_interleave{views::all(std::forward<orng_t>(_urange)), _step_size, views::persist(std::forward<oirng_t>(_inserted_range))}
+        view_interleave{views::type_reduce(std::forward<orng_t>(_urange)), _step_size,
+                        views::persist(std::forward<oirng_t>(_inserted_range))}
     {}
     //!\}
 
@@ -251,10 +255,12 @@ template <std::ranges::random_access_range urng_t, std::ranges::random_access_ra
     //!\cond
     requires std::ranges::viewable_range<urng_t> && std::ranges::sized_range<urng_t> &&
              std::ranges::sized_range<inserted_rng_t> &&
-             std::common_reference_with<reference_t<urng_t>, reference_t<inserted_rng_t>>
+             std::common_reference_with<std::ranges::range_reference_t<urng_t>,
+                                        std::ranges::range_reference_t<inserted_rng_t>>
     //!\endcond
 view_interleave(urng_t &&, size_t, inserted_rng_t &&)
-    -> view_interleave<decltype(views::all(std::declval<urng_t>())), decltype(views::persist(std::declval<inserted_rng_t>()))>;
+    -> view_interleave<decltype(views::type_reduce(std::declval<urng_t>())),
+                       decltype(views::persist(std::declval<inserted_rng_t>()))>;
 
 // ============================================================================
 //  interleave_fn (adaptor definition)
@@ -334,44 +340,44 @@ namespace seqan3::views
  *
  * ### View properties
  *
- * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)  |
- * |----------------------------------|:-------------------------------------:|:-------------------------------:|
- * | std::ranges::input_range         | *required*                            | *preserved*                     |
- * | std::ranges::forward_range       | *required*                            | *preserved*                     |
- * | std::ranges::bidirectional_range | *required*                            | *preserved*                     |
- * | std::ranges::random_access_range | *required*                            | *preserved*                     |
- * | std::ranges::contiguous_range    |                                       | *lost*                          |
- * |                                  |                                       |                                  |
- * | std::ranges::viewable_range      | *required*                            | *guaranteed*                    |
- * | std::ranges::view                |                                       | *guaranteed*                    |
- * | std::ranges::sized_range         | *required*                            | *preserved*                     |
- * | std::ranges::common_range        |                                       | *preserved*                     |
- * | std::ranges::output_range        |                                       | *preserved*                     |
- * | seqan3::const_iterable_range     |                                       | *preserved*                     |
- * |                                  |                                       |                                  |
- * | std::ranges::range_reference_t   |                                       | seqan3::reference_t<urng_t>     |
+ * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)         |
+ * |----------------------------------|:-------------------------------------:|:--------------------------------------:|
+ * | std::ranges::input_range         | *required*                            | *preserved*                            |
+ * | std::ranges::forward_range       | *required*                            | *preserved*                            |
+ * | std::ranges::bidirectional_range | *required*                            | *preserved*                            |
+ * | std::ranges::random_access_range | *required*                            | *preserved*                            |
+ * | std::ranges::contiguous_range    |                                       | *lost*                                 |
+ * |                                  |                                       |                                        |
+ * | std::ranges::viewable_range      | *required*                            | *guaranteed*                           |
+ * | std::ranges::view                |                                       | *guaranteed*                           |
+ * | std::ranges::sized_range         | *required*                            | *preserved*                            |
+ * | std::ranges::common_range        |                                       | *preserved*                            |
+ * | std::ranges::output_range        |                                       | *preserved*                            |
+ * | seqan3::const_iterable_range     |                                       | *preserved*                            |
+ * |                                  |                                       |                                        |
+ * | std::ranges::range_reference_t   |                                       | std::ranges::range_reference_t<urng_t> |
  *
  *
  * If above requirements are not met, this adaptor forwards to
  * `| ranges::view::chunk(step_size) | views::join(inserted_range)`
  * which returns a view with the following properties:
  *
- * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)  |
- * |----------------------------------|:-------------------------------------:|:-------------------------------:|
- * | std::ranges::input_range         | *required*                            | *preserved*                     |
- * | std::ranges::forward_range       | *required*                            | *lost*                          |
- * | std::ranges::bidirectional_range |                                       | *lost*                          |
- * | std::ranges::random_access_range |                                       | *lost*                          |
- * | std::ranges::contiguous_range    |                                       | *lost*                          |
- * |                                  |                                       |                                  |
- * | std::ranges::viewable_range      | *required*                            | *guaranteed*                    |
- * | std::ranges::view                |                                       | *guaranteed*                    |
- * | std::ranges::sized_range         |                                       | *lost*                          |
- * | std::ranges::common_range        |                                       | *lost*                          |
- * | std::ranges::output_range        |                                       | *lost*                          |
- * | seqan3::const_iterable_range     |                                       | *lost*                          |
- * |                                  |                                       |                                  |
- * | std::ranges::range_reference_t   |                                       | seqan3::value_type_t<urng_t>    |
+ * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)       |
+ * |----------------------------------|:-------------------------------------:|:------------------------------------:|
+ * | std::ranges::input_range         | *required*                            | *preserved*                          |
+ * | std::ranges::forward_range       | *required*                            | *lost*                               |
+ * | std::ranges::bidirectional_range |                                       | *lost*                               |
+ * | std::ranges::random_access_range |                                       | *lost*                               |
+ * | std::ranges::contiguous_range    |                                       | *lost*                               |
+ * |                                  |                                       |                                      |
+ * | std::ranges::viewable_range      | *required*                            | *guaranteed*                         |
+ * | std::ranges::view                |                                       | *guaranteed*                         |
+ * | std::ranges::sized_range         |                                       | *lost*                               |
+ * | std::ranges::common_range        |                                       | *lost*                               |
+ * | std::ranges::output_range        |                                       | *lost*                               |
+ * | seqan3::const_iterable_range     |                                       | *lost*                               |
+ * |                                  |                                       |                                      |
+ * | std::ranges::range_reference_t   |                                       | std::ranges::range_value_t<urng_t>   |
  *
  * * `urng_t` is the type of the range modified by this view (input).
  * * `rrng_type` is the type of the range returned by this view.

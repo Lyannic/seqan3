@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ struct seqan3::custom::alphabet<third_party_ns::third_party_type>
 static_assert(seqan3::alphabet<third_party_ns::third_party_type>);
 //![third_party_type]
 
-INSTANTIATE_TYPED_TEST_CASE_P(third_party_type, alphabet_,           third_party_ns::third_party_type);
-INSTANTIATE_TYPED_TEST_CASE_P(third_party_type, semi_alphabet_test,  third_party_ns::third_party_type);
-INSTANTIATE_TYPED_TEST_CASE_P(third_party_type, alphabet_constexpr,  third_party_ns::third_party_type);
-INSTANTIATE_TYPED_TEST_CASE_P(third_party_type, semi_alphabet_constexpr, third_party_ns::third_party_type);
+INSTANTIATE_TYPED_TEST_SUITE_P(third_party_type, alphabet_,           third_party_ns::third_party_type, );
+INSTANTIATE_TYPED_TEST_SUITE_P(third_party_type, semi_alphabet_test,  third_party_ns::third_party_type, );
+INSTANTIATE_TYPED_TEST_SUITE_P(third_party_type, alphabet_constexpr,  third_party_ns::third_party_type, );
+INSTANTIATE_TYPED_TEST_SUITE_P(third_party_type, semi_alphabet_constexpr, third_party_ns::third_party_type, );

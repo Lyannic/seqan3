@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -12,12 +12,11 @@
 
 #pragma once
 
-#include <typeinfo>
-
 #include <seqan3/alphabet/exception.hpp>
 #include <seqan3/core/concept/cereal.hpp>
 #include <seqan3/core/concept/core_language.hpp>
 #include <seqan3/core/detail/customisation_point.hpp>
+#include <seqan3/core/detail/type_inspection.hpp>
 #include <seqan3/std/type_traits>
 
 // ============================================================================
@@ -546,7 +545,7 @@ struct assign_char_strictly_to_fn
     decltype(auto) operator()(seqan3::alphabet_char_t<alph_t> const r, alph_t & a) const
     {
         if (!seqan3::char_is_valid_for<alph_t>(r))
-            throw seqan3::invalid_char_assignment{typeid(alph_t).name(), r};
+            throw seqan3::invalid_char_assignment{detail::type_name_as_string<alph_t>, r};
 
         return seqan3::assign_char_to(r, a);
     }

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -93,7 +93,7 @@ public:
      */
     constexpr char_type to_char() const noexcept
     //!\cond
-        requires !std::same_as<char_t, void>
+        requires (!std::same_as<char_t, void>)
     //!\endcond
     {
         return derived_type::rank_to_char[rank];
@@ -139,7 +139,7 @@ public:
      */
     constexpr derived_type & assign_char(char_type const c) noexcept
     //!\cond
-        requires !std::same_as<char_t, void>
+        requires (!std::same_as<char_t, void>)
     //!\endcond
     {
         using index_t = std::make_unsigned_t<char_type>;
@@ -260,7 +260,7 @@ public:
     //!\copybrief seqan3::alphabet_base::to_char
     constexpr char_type to_char() const noexcept
     //!\cond
-        requires !std::same_as<char_t, void>
+        requires (!std::same_as<char_t, void>)
     //!\endcond
     {
         return derived_type::char_value;
@@ -279,7 +279,7 @@ public:
     //!\copybrief seqan3::alphabet_base::assign_char
     constexpr derived_type & assign_char(char_type const) noexcept
     //!\cond
-        requires !std::same_as<char_t, void>
+        requires (!std::same_as<char_t, void>)
     //!\endcond
     {
         return static_cast<derived_type &>(*this);

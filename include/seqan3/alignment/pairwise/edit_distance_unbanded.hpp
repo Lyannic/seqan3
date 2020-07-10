@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -25,7 +25,6 @@
 #include <seqan3/alignment/pairwise/alignment_result.hpp>
 #include <seqan3/alignment/pairwise/edit_distance_fwd.hpp>
 #include <seqan3/core/algorithm/configuration.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/std/ranges>
 
 namespace seqan3::detail
@@ -522,7 +521,7 @@ protected:
 
     using typename edit_traits::word_type;
     using typename edit_traits::trace_matrix_type;
-    using typename edit_traits::result_value_type;
+    using typename edit_traits::alignment_result_type;
 
     /*!\name Trace matrix Policy: Protected Attributes
      * \copydoc edit_distance_unbanded_trace_matrix_policy
@@ -592,7 +591,7 @@ public:
     //!       Only available if default_edit_distance_trait_type::compute_sequence_alignment is true.
     auto alignment() const noexcept
     {
-        using alignment_t = decltype(result_value_type{}.alignment);
+        using alignment_t = remove_cvref_t<decltype(std::declval<alignment_result_type &>().alignment())>;
 
         derived_t const * self = static_cast<derived_t const *>(this);
         static_assert(edit_traits::compute_sequence_alignment, "alignment() can only be computed if you specify the "
@@ -736,7 +735,7 @@ private:
 
     using typename edit_traits::database_iterator;
     using typename edit_traits::query_alphabet_type;
-    using typename edit_traits::result_value_type;
+    using typename edit_traits::alignment_result_type;
     using edit_traits::use_max_errors;
     using edit_traits::is_semi_global;
     using edit_traits::is_global;
@@ -866,7 +865,7 @@ public:
     edit_distance_unbanded(database_t _database,
                            query_t _query,
                            align_config_t _config,
-                           edit_traits const & SEQAN3_DOXYGEN_ONLY(_traits) = edit_traits{}) :
+                           edit_traits const & SEQAN3_DOXYGEN_ONLY(_traits)) :
         database{std::forward<database_t>(_database)},
         query{std::forward<query_t>(_query)},
         config{std::forward<align_config_t>(_config)},
@@ -1036,11 +1035,14 @@ private:
 
 public:
     /*!\brief Generic invocable interface.
-     * \param[in]     idx The index of the currently processed sequence pair.
-     * \returns A reference to the filled alignment result.
+     * \param[in] idx The index of the currently processed sequence pair.
+     * \param[in] callback The callback function to be invoked with the alignment result.
      */
-    alignment_result<result_value_type> operator()(size_t const idx)
+    template <typename callback_t>
+    void operator()(size_t const idx, callback_t && callback)
     {
+        using result_value_type = typename alignment_result_value_type_accessor<alignment_result_type>::type;
+
         compute();
         result_value_type res_vt{};
         res_vt.id = idx;
@@ -1074,7 +1076,7 @@ public:
                                                                 res_vt.front_coordinate);
             }
         }
-        return alignment_result<result_value_type>{std::move(res_vt)};
+        callback(alignment_result_type{std::move(res_vt)});
     }
 };
 
@@ -1169,11 +1171,6 @@ bool edit_distance_unbanded<database_t, query_t, align_config_t, traits_t>::larg
  * \relates seqan3::detail::edit_distance_unbanded
  * \{
  */
-
-//!\brief Deduce the type from the provided arguments.
-template <typename database_t, typename query_t, typename config_t>
-edit_distance_unbanded(database_t && database, query_t && query, config_t config)
-    -> edit_distance_unbanded<database_t, query_t, config_t>;
 
 //!\brief Deduce the type from the provided arguments.
 template <typename database_t, typename query_t, typename config_t, typename traits_t>

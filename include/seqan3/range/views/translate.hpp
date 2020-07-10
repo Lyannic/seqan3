@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ template <std::ranges::view urng_t>
 //!\cond
     requires std::ranges::sized_range<urng_t> &&
              std::ranges::random_access_range<urng_t> &&
-             nucleotide_alphabet<reference_t<urng_t>>
+             nucleotide_alphabet<std::ranges::range_reference_t<urng_t>>
 //!\endcond
 class view_translate;
 
@@ -47,7 +47,7 @@ template <std::ranges::view urng_t>
 //!\cond
     requires std::ranges::sized_range<urng_t> &&
              std::ranges::random_access_range<urng_t> &&
-             nucleotide_alphabet<reference_t<urng_t>>
+             nucleotide_alphabet<std::ranges::range_reference_t<urng_t>>
 //!\endcond
 class view_translate_single;
 
@@ -121,7 +121,7 @@ struct translate_fn
             "The range parameter to views::translate[_single] must model std::ranges::sized_range.");
         static_assert(std::ranges::random_access_range<urng_t>,
             "The range parameter to views::translate[_single] must model std::ranges::random_access_range.");
-        static_assert(nucleotide_alphabet<reference_t<urng_t>>,
+        static_assert(nucleotide_alphabet<std::ranges::range_reference_t<urng_t>>,
             "The range parameter to views::translate[_single] must be over elements of seqan3::nucleotide_alphabet.");
 
         if constexpr (single)
@@ -152,7 +152,7 @@ template <std::ranges::view urng_t>
 //!\cond
     requires std::ranges::sized_range<urng_t> &&
              std::ranges::random_access_range<urng_t> &&
-             nucleotide_alphabet<reference_t<urng_t>>
+             nucleotide_alphabet<std::ranges::range_reference_t<urng_t>>
 //!\endcond
 class view_translate_single : public ranges::view_base
 {
@@ -176,9 +176,9 @@ public:
     //!\brief The value_type (which equals the reference_type with any references removed).
     using value_type        = aa27;
     //!\brief The size_type.
-    using size_type         = size_type_t<urng_t>;
+    using size_type         = std::ranges::range_size_t<urng_t>;
     //!\brief A signed integer type, usually std::ptrdiff_t.
-    using difference_type   = difference_type_t<urng_t>;
+    using difference_type   = std::ranges::range_difference_t<urng_t>;
     //!\brief The iterator type of this view (a random access iterator).
     using iterator          = detail::random_access_iterator<view_translate_single>;
     //!\brief The const_iterator type is equal to the iterator type.
@@ -314,17 +314,17 @@ public:
             case translation_frames::FWD_FRAME_0:
                 [[fallthrough]];
             case translation_frames::REV_FRAME_0:
-                return seqan3::size(urange) / 3;
+                return std::ranges::size(urange) / 3;
                 break;
             case translation_frames::FWD_FRAME_1:
                 [[fallthrough]];
             case translation_frames::REV_FRAME_1:
-                return (std::max<size_type>(seqan3::size(urange), 1) - 1) / 3;
+                return (std::max<size_type>(std::ranges::size(urange), 1) - 1) / 3;
                 break;
             case translation_frames::FWD_FRAME_2:
                 [[fallthrough]];
             case translation_frames::REV_FRAME_2:
-                return (std::max<size_type>(seqan3::size(urange), 2) - 2) / 3;
+                return (std::max<size_type>(std::ranges::size(urange), 2) - 2) / 3;
                 break;
             default:
                 throw std::invalid_argument(multiple_frame_error.c_str());
@@ -340,17 +340,17 @@ public:
             case translation_frames::FWD_FRAME_0:
                 [[fallthrough]];
             case translation_frames::REV_FRAME_0:
-                return seqan3::size(urange) / 3;
+                return std::ranges::size(urange) / 3;
                 break;
             case translation_frames::FWD_FRAME_1:
                 [[fallthrough]];
             case translation_frames::REV_FRAME_1:
-                return (std::max<size_type>(seqan3::size(urange), 1) - 1) / 3;
+                return (std::max<size_type>(std::ranges::size(urange), 1) - 1) / 3;
                 break;
             case translation_frames::FWD_FRAME_2:
                 [[fallthrough]];
             case translation_frames::REV_FRAME_2:
-                return (std::max<size_type>(seqan3::size(urange), 2) - 2) / 3;
+                return (std::max<size_type>(std::ranges::size(urange), 2) - 2) / 3;
                 break;
             default:
                 throw std::invalid_argument(multiple_frame_error.c_str());
@@ -524,7 +524,7 @@ template <std::ranges::view urng_t>
 //!\cond
     requires std::ranges::sized_range<urng_t> &&
              std::ranges::random_access_range<urng_t> &&
-             nucleotide_alphabet<reference_t<urng_t>>
+             nucleotide_alphabet<std::ranges::range_reference_t<urng_t>>
 //!\endcond
 class view_translate : public ranges::view_base
 {
@@ -547,9 +547,9 @@ public:
     //!\brief The value_type (which equals the reference_type with any references removed).
     using value_type        = reference;
     //!\brief The size_type.
-    using size_type         = size_type_t<urng_t>;
+    using size_type         = std::ranges::range_size_t<urng_t>;
     //!\brief A signed integer type, usually std::ptrdiff_t.
-    using difference_type   = difference_type_t<urng_t>;
+    using difference_type   = std::ranges::range_difference_t<urng_t>;
     //!\brief The iterator type of this view (a random access iterator).
     using iterator          = detail::random_access_iterator<view_translate>;
     //!\brief The const iterator type of this view (same as iterator, because it's a view).
@@ -743,7 +743,7 @@ template <typename urng_t>
 //!\cond
     requires std::ranges::sized_range<urng_t> &&
              std::ranges::random_access_range<urng_t> &&
-             nucleotide_alphabet<reference_t<urng_t>>
+             nucleotide_alphabet<std::ranges::range_reference_t<urng_t>>
 //!\endcond
 view_translate(urng_t &&, translation_frames const = translation_frames{}) -> view_translate<std::ranges::all_view<urng_t>>;
 

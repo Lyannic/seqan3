@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -32,6 +32,7 @@ namespace seqan3::detail
 {
 //!\brief Whether a type is `char`, `char16_t`, `char32_t` or `wchar_t` (type trait).
 //!\ingroup adaptation
+//!\hideinitializer
 template <typename type>
 constexpr bool is_char_adaptation_v = std::same_as<type, char>     ||
                                       std::same_as<type, char16_t> ||

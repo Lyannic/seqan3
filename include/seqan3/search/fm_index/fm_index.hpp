@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -16,12 +16,10 @@
 
 #include <seqan3/core/type_traits/range.hpp>
 #include <seqan3/std/filesystem>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/views/join.hpp>
 #include <seqan3/range/views/to_rank.hpp>
 #include <seqan3/range/views/to.hpp>
 #include <seqan3/search/fm_index/concept.hpp>
-#include <seqan3/search/fm_index/detail/csa_alphabet_strategy.hpp>
 #include <seqan3/search/fm_index/detail/fm_index_cursor.hpp>
 #include <seqan3/search/fm_index/fm_index_cursor.hpp>
 #include <seqan3/std/algorithm>
@@ -49,12 +47,12 @@ class bi_fm_index_cursor;
  *
  * ### Running time / Space consumption
  *
- * \f$SAMPLING\_RATE = 16\f$
- * \f$\Sigma\f$: alphabet_size<char_type> where char_type is the seqan3 alphabet type (e.g. dna4 has an alphabet size
- *               of 4).
+ * \f$SAMPLING\_RATE = 16\f$ \n
+ * \f$\Sigma\f$: alphabet_size<alphabet_type> where alphabet_type is the seqan3 alphabet type (e.g. seqan3::dna4 has an
+ *               alphabet size of 4).
  *
- * For an index over a text collection a delimiter is added inbetween the texts. This causes sigma to increase by 1.
- * \attention For any alphabet, the symbol with rank 255 is not allowed to occur in the text. Addtionally,
+ * For an index over a text collection a delimiter is added in between the texts. This causes sigma to increase by 1.
+ * \attention For any alphabet, the symbol with rank 255 is not allowed to occur in the text. Additionally,
  *            rank 254 cannot occur when indexing text collections.
  *
  * \if DEV
@@ -80,7 +78,7 @@ using sdsl_wt_index_type =
                                sdsl::select_support_scan<>,
                                sdsl::select_support_scan<0>>,
                  16,
-                 10000000,
+                 10'000'000,
                  sdsl::sa_order_sa_sampling<>,
                  sdsl::isa_sampling<>,
                  sdsl::plain_byte_alphabet>;
@@ -91,14 +89,13 @@ using sdsl_wt_index_type =
  */
 using default_sdsl_index_type = sdsl_wt_index_type;
 
-
-
 /*!\brief The SeqAn FM Index.
  * \implements seqan3::fm_index_specialisation
  * \tparam alphabet_t        The alphabet type; must model seqan3::semialphabet.
  * \tparam text_layout_mode_ Indicates whether this index works on a text collection or a single text.
  *                           See seqan3::text_layout.
  * \tparam sdsl_index_type_  The type of the underlying SDSL index, must model seqan3::sdsl_index.
+ * \implements seqan3::cerealisable
  * \details
  *
  * The seqan3::fm_index is a fast and space-efficient string index to search strings and collections of strings.
@@ -191,7 +188,7 @@ private:
         static_assert(dimension_v<text_t> == 1, "The input cannot be a text collection.");
 
         // text must not be empty
-        if (std::ranges::begin(text) == std::ranges::end(text))
+        if (std::ranges::empty(text))
             throw std::invalid_argument("The text that is indexed cannot be empty.");
 
         constexpr auto sigma = alphabet_size<alphabet_t>;
@@ -235,7 +232,7 @@ private:
     void construct(text_t && text)
     {
         static_assert(std::ranges::bidirectional_range<text_t>, "The text collection must model bidirectional_range.");
-        static_assert(std::ranges::bidirectional_range<reference_t<text_t>>,
+        static_assert(std::ranges::bidirectional_range<std::ranges::range_reference_t<text_t>>,
                       "The elements of the text collection must model bidirectional_range.");
         static_assert(alphabet_size<innermost_value_type_t<text_t>> <= 256, "The alphabet is too big.");
         static_assert(std::convertible_to<innermost_value_type_t<text_t>, alphabet_t>,
@@ -325,7 +322,7 @@ public:
      * \{
      */
     //!\brief The type of the underlying character of the indexed text.
-    using char_type = alphabet_t;
+    using alphabet_type = alphabet_t;
     //!\brief Type for representing positions in the indexed text.
     using size_type = typename sdsl_index_type::size_type;
     //!\brief The type of the (unidirectional) cursor.
@@ -387,8 +384,8 @@ public:
      *
      * \if DEV \todo \endif At least linear.
      */
-    template <std::ranges::range text_t>
-    fm_index(text_t && text)
+    template <std::ranges::bidirectional_range text_t>
+    explicit fm_index(text_t && text)
     {
         construct(std::forward<text_t>(text));
     }
@@ -473,7 +470,7 @@ public:
      *
      * No-throw guarantee.
      */
-    cursor_type begin() const noexcept
+    cursor_type cursor() const noexcept
     {
         return {*this};
     }

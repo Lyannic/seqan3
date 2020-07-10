@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -13,8 +13,6 @@
 #include <seqan3/std/iterator>
 
 #include "auxiliary.hpp"
-
-using namespace seqan3;
 
 TEST(core_language_concepts, same_as)
 {
@@ -30,16 +28,16 @@ TEST(core_language_concepts, derived_from)
 
 TEST(implicitly_convertible_to, basic)
 {
-    EXPECT_TRUE((implicitly_convertible_to<type_b, type_c>));
-    EXPECT_TRUE((!implicitly_convertible_to<type_c, type_b>));
-    EXPECT_TRUE((!implicitly_convertible_to<type_a, type_c>));
+    EXPECT_TRUE((seqan3::implicitly_convertible_to<type_b, type_c>));
+    EXPECT_TRUE((!seqan3::implicitly_convertible_to<type_c, type_b>));
+    EXPECT_TRUE((!seqan3::implicitly_convertible_to<type_a, type_c>));
 }
 
 TEST(explicitly_convertible_to, basic)
 {
-    EXPECT_TRUE((explicitly_convertible_to<type_b, type_c>));
-    EXPECT_TRUE((!explicitly_convertible_to<type_c, type_b>));
-    EXPECT_TRUE((explicitly_convertible_to<type_a, type_c>));
+    EXPECT_TRUE((seqan3::explicitly_convertible_to<type_b, type_c>));
+    EXPECT_TRUE((!seqan3::explicitly_convertible_to<type_c, type_b>));
+    EXPECT_TRUE((seqan3::explicitly_convertible_to<type_a, type_c>));
 }
 
 TEST(core_language_concepts, convertible_to)

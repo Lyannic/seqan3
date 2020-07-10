@@ -42,7 +42,7 @@ Currently, SeqAn supports the following file formats:
 For instance, you need to have *zlib* installed for reading `.gz` files and *libbz2* for reading `.bz2` files.
 You can check whether you have installed these libraries by running `cmake .` in your build directory.
 If `-- Optional dependency: ZLIB-x.x.x found.` is displayed on the command line then you can read/write
-compressed files in your programs. TODO what about bz2
+compressed files in your programs.
 
 ## Basic layout of SeqAn file objects
 
@@ -52,7 +52,7 @@ hoping that it will make the following tutorial easier to understand.
 As mentioned above, our file object is a range over records.
 More specifically over objects of type seqan3::record which is basically just a std::tuple that holds the data.
 To identify or specialise which data is read/written and contained in the records,
-we use seqan3::field tags (e.g. seqan3::field::SEQ denotes sequence information).
+we use seqan3::field tags (e.g. seqan3::field::seq denotes sequence information).
 The seqan3::field tags are shared between file formats and allow for easy file conversion.
 
 Output files can handle various types that fulfill the requirements of the format (e.g.
@@ -130,7 +130,7 @@ The formerly introduced formats can be identified by the following file name ext
 | EMBL        | seqan3::format_embl  |   `.embl`                                         |
 
 
-You can access the valid file extension via the `file_extension` member variable in a format:
+You can access the valid file extension via the `file_extensions` member variable in a format:
 
 \snippet doc/tutorial/sequence_file/sequence_file_snippets.cpp file_extensions
 
@@ -142,10 +142,10 @@ You can also customise this list if you want to allow different or additional fi
 
 The Sequence file abstraction supports reading four different fields:
 
-  1. seqan3::field::SEQ
-  2. seqan3::field::ID
-  3. seqan3::field::QUAL
-  4. seqan3::field::SEQ_QUAL
+  1. seqan3::field::seq
+  2. seqan3::field::id
+  3. seqan3::field::qual
+  4. seqan3::field::seq_qual
 
 The first three fields are retrieved by default (and in that order!).
 The last field may be selected to directly store sequence and qualities in a more memory-efficient
@@ -227,7 +227,7 @@ In this case you immediately get the two elements of the tuple:
 You can read up more on the different ways to stream over the file object in the detailed documentation
 of seqan3::sequence_file_input.
 
-\assignment{Exercise: Reading a FASTQ file}
+\assignment{Assignment 1: Reading a FASTQ file}
 Copy and paste the following FASTQ file to some location, e.g. the tmp directory:
 
 \snippet doc/tutorial/sequence_file/sequence_file_snippets.cpp fastq_file
@@ -271,7 +271,7 @@ You can move the record out of the file if you want to store it somewhere withou
 
 \snippet doc/tutorial/sequence_file/sequence_file_snippets.cpp record_type2
 
-\assignment{Exercise: Storing records in a std::vector}
+\assignment{Assignment 2: Storing records in a std::vector}
 
 Create a small program that reads in a FASTA file and stores all the records in a std::vector.
 
@@ -332,7 +332,7 @@ If you want to handle one pair of reads at a time, you can do so easily with a v
 
 \snippet doc/tutorial/sequence_file/sequence_file_snippets.cpp paired_reads
 
-\assignment{Exercise: Fun with file ranges}
+\assignment{Assignment 3: Fun with file ranges}
 
 Implement a small program that reads in a FASTQ file and prints the first 2 sequences
 that have a length of at least 5.
@@ -377,14 +377,14 @@ These work similarly to how they work on an std::vector.
 
 If you pass a tuple to `push_back()` or give arguments to `emplace_back()` the order of elements is assumed
 to be the same as the one in the seqan3::sequence_file_output::selected_field_ids.
-For the above example the default FASTA fields are first seqan3::field::SEQ,
-second seqan3::field::ID and the third one seqan3::field::QUAL.
+For the above example the default FASTA fields are first seqan3::field::seq,
+second seqan3::field::id and the third one seqan3::field::qual.
 You may give less fields than are selected if the actual format you are writing to can cope with less
 (e.g. for FastA it is sufficient to give sequence and name information).
 
-\assignment{Exercise: Writing a FASTQ file}
+\assignment{Assignment 4: Writing a FASTQ file}
 
-Use your code (or the solution) from the previous exercise.
+Use your code (or the solution) from the previous assignment.
 Iterate over the records with a for loop and instead of just printing the ids,
 write out **all** the records that satisfy the filter to a new file called `output.fastq`.
 
@@ -419,9 +419,9 @@ a seqan3::sequence_file_input object. In the same way you can pipe the output fi
 
 \snippet doc/tutorial/sequence_file/sequence_file_snippets.cpp piping_in_out
 
-\assignment{Exercise: Fun with file ranges 2}
+\assignment{Assignment 5: Fun with file ranges 2}
 
-Working on your solution from the previous exercise, try to remove the for loop in favour of a pipe notation.
+Working on your solution from the previous assignment, try to remove the for loop in favour of a pipe notation.
 
 The result should be the same.
 

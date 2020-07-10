@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -27,12 +27,14 @@
 #include <seqan3/io/alignment_file/header.hpp>
 #include <seqan3/io/alignment_file/input_format_concept.hpp>
 #include <seqan3/io/alignment_file/input_options.hpp>
+#include <seqan3/io/alignment_file/misc.hpp>
 #include <seqan3/io/alignment_file/output_format_concept.hpp>
 #include <seqan3/io/alignment_file/output_options.hpp>
 #include <seqan3/io/alignment_file/sam_tag_dictionary.hpp>
 #include <seqan3/io/detail/ignore_output_iterator.hpp>
 #include <seqan3/io/detail/misc.hpp>
 #include <seqan3/io/stream/iterator.hpp>
+#include <seqan3/io/sequence_file/input_format_concept.hpp>
 #include <seqan3/io/sequence_file/output_options.hpp>
 #include <seqan3/range/detail/misc.hpp>
 #include <seqan3/range/views/char_to.hpp>
@@ -68,11 +70,11 @@ namespace seqan3
  * ### fields_specialisation
  *
  * The SAM format provides the following fields:
- * seqan3::field::ALIGNMENT, seqan3::field::SEQ, seqan3::field::QUAL,
- * seqan3::field::ID, seqan3::field::REF_SEQ, seqan3::field::REF_ID
- * seqan3::field::REF_OSSFET, seqan3::field::OFFSET, seqan3::field::FLAG,
- * seqan3::field::MAPQ and seqan3::field::MATE.
- * In addition there is the seqan3::field::HEADER_PTR, which is usually only used internally
+ * seqan3::field::alignment, seqan3::field::seq, seqan3::field::qual,
+ * seqan3::field::id, seqan3::field::ref_seq, seqan3::field::ref_id
+ * seqan3::field::ref_ossfet, seqan3::field::offset, seqan3::field::flag,
+ * seqan3::field::mapq and seqan3::field::mate.
+ * In addition there is the seqan3::field::header_ptr, which is usually only used internally
  * to provide the range-based functionality of the file.
  *
  * **None of the fields are required** when writing but will be defaulted
@@ -85,17 +87,17 @@ namespace seqan3
  *
  * | #  | SAM Column ID |  FIELD name                                       |
  * |:--:|:--------------|:--------------------------------------------------|
- * | 1  | QNAME         | seqan3::field::ID                                 |
- * | 2  | FLAG          | seqan3::field::FLAG                               |
- * | 3  | RNAME         | seqan3::field::REF_ID                             |
- * | 4  | POS           | seqan3::field::REF_OFFSET                         |
- * | 5  | MAPQ          | seqan3::field::MAPQ                               |
- * | 6  | CIGAR         | implicilty stored in seqan3::field::ALIGNMENT     |
- * | 7  | RNEXT         | seqan3::field::MATE (tuple pos 0)                 |
- * | 8  | PNEXT         | seqan3::field::MATE (tuple pos 1)                 |
- * | 9  | TLEN          | seqan3::field::MATE (tuple pos 2)                 |
- * | 10 | SEQ           | seqan3::field::SEQ                                |
- * | 11 | QUAL          | seqan3::field::QUAL                               |
+ * | 1  | QNAME         | seqan3::field::id                                 |
+ * | 2  | FLAG          | seqan3::field::flag                               |
+ * | 3  | RNAME         | seqan3::field::ref_id                             |
+ * | 4  | POS           | seqan3::field::ref_offset                         |
+ * | 5  | MAPQ          | seqan3::field::mapq                               |
+ * | 6  | CIGAR         | implicilty stored in seqan3::field::alignment     |
+ * | 7  | RNEXT         | seqan3::field::mate (tuple pos 0)                 |
+ * | 8  | PNEXT         | seqan3::field::mate (tuple pos 1)                 |
+ * | 9  | TLEN          | seqan3::field::mate (tuple pos 2)                 |
+ * | 10 | SEQ           | seqan3::field::seq                                |
+ * | 11 | QUAL          | seqan3::field::qual                               |
  *
  * The (read sequence/query) **OFFSET** will be required to store the soft
  * clipping information at the read start (end clipping will be automatically
@@ -220,14 +222,14 @@ protected:
                                 seq_type && seq,
                                 qual_type && qual,
                                 id_type && id,
-                                int32_t offset,
+                                int32_t const offset,
                                 ref_seq_type && SEQAN3_DOXYGEN_ONLY(ref_seq),
                                 ref_id_type && ref_id,
                                 std::optional<int32_t> ref_offset,
                                 align_type && align,
                                 std::vector<cigar> const & cigar_vector,
-                                uint16_t flag,
-                                uint8_t mapq,
+                                sam_flag const flag,
+                                uint8_t const mapq,
                                 mate_type && mate,
                                 tag_dict_type && tag_dict,
                                 e_value_type && SEQAN3_DOXYGEN_ONLY(e_value),
@@ -340,9 +342,24 @@ inline void format_sam::write_sequence_record(stream_type & stream,
 
     alignment_file_output_options output_options;
 
-    write_alignment_record(stream, output_options, std::ignore, default_or(sequence), default_or(qualities),
-                           default_or(id), 0, std::string_view{}, std::string_view{}, -1, default_align_t{},
-                           std::vector<cigar>{}, 0, 0, default_mate_t{}, sam_tag_dictionary{}, 0, 0);
+    write_alignment_record(stream,
+                           output_options,
+        /*header*/         std::ignore,
+        /*seq*/            default_or(sequence),
+        /*qual*/           default_or(qualities),
+        /*id*/             default_or(id),
+        /*offset*/         0,
+        /*ref_seq*/        std::string_view{},
+        /*ref_id*/         std::string_view{},
+        /*ref_offset*/     -1,
+        /*align*/          default_align_t{},
+        /*cigar_vector*/   std::vector<cigar>{},
+        /*flag*/           sam_flag::none,
+        /*mapq*/           0,
+        /*mate*/           default_mate_t{},
+        /*tag_dict*/       sam_tag_dictionary{},
+        /*e_value*/        0,
+        /*bit_score*/      0);
 }
 
 //!\copydoc alignment_file_input_format::read_alignment_record
@@ -394,7 +411,7 @@ inline void format_sam::read_alignment_record(stream_type & stream,
 
     // these variables need to be stored to compute the ALIGNMENT
     int32_t ref_offset_tmp{};
-    value_type_t<decltype(header.ref_ids())> ref_id_tmp{};
+    std::ranges::range_value_t<decltype(header.ref_ids())> ref_id_tmp{};
     [[maybe_unused]] int32_t offset_tmp{};
     [[maybe_unused]] int32_t soft_clipping_end{};
     [[maybe_unused]] std::vector<cigar> tmp_cigar_vector{};
@@ -414,7 +431,9 @@ inline void format_sam::read_alignment_record(stream_type & stream,
     // -------------------------------------------------------------------------------------------------------------
     read_field(field_view, id);
 
-    read_field(field_view, flag);
+    uint16_t flag_integral{};
+    read_field(field_view, flag_integral);
+    flag = sam_flag{flag_integral};
 
     read_field(field_view, ref_id_tmp);
     check_and_assign_ref_id(ref_id, ref_id_tmp, header, ref_seqs);
@@ -427,7 +446,7 @@ inline void format_sam::read_alignment_record(stream_type & stream,
     else if (ref_offset_tmp > -1)
         ref_offset = ref_offset_tmp;
     else if (ref_offset_tmp < -1)
-        throw format_error{"No negative values are allowed for field::REF_OFFSET."};
+        throw format_error{"No negative values are allowed for field::ref_offset."};
 
     read_field(field_view, mapq);
 
@@ -457,7 +476,7 @@ inline void format_sam::read_alignment_record(stream_type & stream,
     // -------------------------------------------------------------------------------------------------------------
     if constexpr (!detail::decays_to_ignore_v<mate_type>)
     {
-        value_type_t<decltype(header.ref_ids())> tmp_mate_ref_id{};
+        std::ranges::range_value_t<decltype(header.ref_ids())> tmp_mate_ref_id{};
         read_field(field_view, tmp_mate_ref_id); // RNEXT
 
         if (tmp_mate_ref_id == "=") // indicates "same as ref id"
@@ -500,7 +519,7 @@ inline void format_sam::read_alignment_record(stream_type & stream,
                                        {
                                            if (!is_legal_alph(c))
                                                throw parse_error{std::string{"Encountered an unexpected letter: "} +
-                                                                 is_legal_alph.msg.str() +
+                                                                 is_legal_alph.msg +
                                                                  " evaluated to false on " +
                                                                  detail::make_printable(c)};
                                            return c;
@@ -522,7 +541,7 @@ inline void format_sam::read_alignment_record(stream_type & stream,
 
                     for (; seq_length > 0; --seq_length) // seq_length is not needed anymore
                     {
-                        get<1>(align).push_back(value_type_t<decltype(get<1>(align))>{}.assign_char(*tmp_iter));
+                        get<1>(align).push_back(std::ranges::range_value_t<decltype(get<1>(align))>{}.assign_char(*tmp_iter));
                         ++tmp_iter;
                     }
 
@@ -544,7 +563,7 @@ inline void format_sam::read_alignment_record(stream_type & stream,
 
             if constexpr (!detail::decays_to_ignore_v<align_type>)
             {
-                if (!tmp_cigar_vector.empty()) // if no alignment info is given, the field::ALIGNMENT should remain empty
+                if (!tmp_cigar_vector.empty()) // if no alignment info is given, the field::alignment should remain empty
                 {
                     assign_unaligned(get<1>(align),
                                      seq | views::slice(static_cast<decltype(std::ranges::size(seq))>(offset_tmp),
@@ -627,14 +646,14 @@ inline void format_sam::write_alignment_record(stream_type & stream,
                                                seq_type && seq,
                                                qual_type && qual,
                                                id_type && id,
-                                               int32_t offset,
+                                               int32_t const offset,
                                                ref_seq_type && SEQAN3_DOXYGEN_ONLY(ref_seq),
                                                ref_id_type && ref_id,
                                                std::optional<int32_t> ref_offset,
                                                align_type && align,
                                                std::vector<cigar> const & cigar_vector,
-                                               uint16_t flag,
-                                               uint8_t mapq,
+                                               sam_flag const flag,
+                                               uint8_t const mapq,
                                                mate_type && mate,
                                                tag_dict_type && tag_dict,
                                                e_value_type && SEQAN3_DOXYGEN_ONLY(e_value),
@@ -657,12 +676,12 @@ inline void format_sam::write_alignment_record(stream_type & stream,
     // Type Requirements (as static asserts for user friendliness)
     // ---------------------------------------------------------------------
     static_assert((std::ranges::forward_range<seq_type>        &&
-                  alphabet<reference_t<seq_type>>),
+                  alphabet<std::ranges::range_reference_t<seq_type>>),
                   "The seq object must be a std::ranges::forward_range over "
                   "letters that model seqan3::alphabet.");
 
     static_assert((std::ranges::forward_range<id_type>         &&
-                  alphabet<reference_t<id_type>>),
+                  alphabet<std::ranges::range_reference_t<id_type>>),
                   "The id object must be a std::ranges::forward_range over "
                   "letters that model seqan3::alphabet.");
 
@@ -685,13 +704,13 @@ inline void format_sam::write_alignment_record(stream_type & stream,
                   "value_type is comparable to seqan3::gap");
 
     static_assert((std::tuple_size_v<remove_cvref_t<align_type>> == 2 &&
-                   std::equality_comparable_with<gap, reference_t<decltype(std::get<0>(align))>> &&
-                   std::equality_comparable_with<gap, reference_t<decltype(std::get<1>(align))>>),
+                   std::equality_comparable_with<gap, std::ranges::range_reference_t<decltype(std::get<0>(align))>> &&
+                   std::equality_comparable_with<gap, std::ranges::range_reference_t<decltype(std::get<1>(align))>>),
                   "The align object must be a std::pair of two ranges whose "
                   "value_type is comparable to seqan3::gap");
 
     static_assert((std::ranges::forward_range<qual_type>       &&
-                   alphabet<reference_t<qual_type>>),
+                   alphabet<std::ranges::range_reference_t<qual_type>>),
                   "The qual object must be a std::ranges::forward_range "
                   "over letters that model seqan3::alphabet.");
 
@@ -781,7 +800,7 @@ inline void format_sam::write_alignment_record(stream_type & stream,
 
     stream << separator;
 
-    stream << flag << separator;
+    stream << static_cast<uint16_t>(flag) << separator;
 
     if constexpr (!detail::decays_to_ignore_v<ref_id_type>)
     {
@@ -813,7 +832,12 @@ inline void format_sam::write_alignment_record(stream_type & stream,
 
     stream << static_cast<unsigned>(mapq) << separator;
 
-    if (!std::ranges::empty(get<0>(align)) && !std::ranges::empty(get<1>(align)))
+    if (!std::ranges::empty(cigar_vector))
+    {
+        for (auto & c : cigar_vector)
+            stream << c.to_string(); // returns a small_vector instead of char so write_range doesn't work
+    }
+    else if (!std::ranges::empty(get<0>(align)) && !std::ranges::empty(get<1>(align)))
     {
         // compute possible distance from alignment end to sequence end
         // which indicates soft clipping at the end.
@@ -826,11 +850,6 @@ inline void format_sam::write_alignment_record(stream_type & stream,
         off_end -= std::ranges::size(get<1>(align));
 
         write_range(stream_it, detail::get_cigar_string(std::forward<align_type>(align), offset, off_end));
-    }
-    else if (!cigar_vector.empty())
-    {
-        for (auto & c : cigar_vector)
-            stream << c.to_string(); // returns a small_vector instead of char so write_range doesn't work
     }
     else
     {

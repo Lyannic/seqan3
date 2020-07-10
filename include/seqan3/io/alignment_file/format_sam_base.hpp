@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -19,8 +19,8 @@
 #include <seqan3/core/char_operations/predicate.hpp>
 #include <seqan3/core/concept/core_language.hpp>
 #include <seqan3/core/concept/tuple.hpp>
-#include <seqan3/core/detail/reflection.hpp>
 #include <seqan3/core/detail/to_string.hpp>
+#include <seqan3/core/detail/type_inspection.hpp>
 #include <seqan3/core/type_traits/range.hpp>
 #include <seqan3/core/type_traits/template_inspection.hpp>
 #include <seqan3/io/alignment_file/detail.hpp>
@@ -136,7 +136,7 @@ protected:
 };
 
 /*!\brief Checks for known reference ids or adds a new reference is and assigns a reference id to `ref_id`.
- * \tparam ref_id_type         The type of the reference id (usually a views::all over ref_id_tmp_type).
+ * \tparam ref_id_type         The type of the reference id (usually a views::type_reduce over ref_id_tmp_type).
  * \tparam ref_id_tmp_type     The type of the temporary parsed id (same_as type as reference ids in header).
  * \tparam header_type         The type of the alignment header.
  * \tparam ref_seqs_type       A tag whether the reference information were given or not (std::ignore or not).
@@ -286,7 +286,7 @@ inline std::tuple<std::vector<cigar>, int32_t, int32_t> format_sam_base::parse_c
     return {operations, ref_length, seq_length};
 }
 
-/*!\brief Construct the field::ALIGNMENT depending on the given information.
+/*!\brief Construct the field::alignment depending on the given information.
  * \tparam align_type      The alignment type.
  * \tparam ref_seqs_type   The type of reference sequences (might decay to ignore).
  * \param[in,out] align    The alignment (pair of aligned sequences) to fill.
@@ -317,7 +317,7 @@ inline void format_sam_base::construct_alignment(align_type                     
         else
         {
             using unaligned_t = remove_cvref_t<detail::unaligned_seq_t<decltype(get<0>(align))>>;
-            auto dummy_seq    = views::repeat_n(value_type_t<unaligned_t>{}, ref_length)
+            auto dummy_seq    = views::repeat_n(std::ranges::range_value_t<unaligned_t>{}, ref_length)
                               | std::views::transform(detail::access_restrictor_fn{});
             static_assert(std::same_as<unaligned_t, decltype(dummy_seq)>,
                           "No reference information was given so the type of the first alignment tuple position"
@@ -341,7 +341,7 @@ inline void format_sam_base::construct_alignment(align_type                     
         else
         {
             using unaligned_t = remove_cvref_t<detail::unaligned_seq_t<decltype(get<0>(align))>>;
-            assign_unaligned(get<0>(align), views::repeat_n(value_type_t<unaligned_t>{}, 0)
+            assign_unaligned(get<0>(align), views::repeat_n(std::ranges::range_value_t<unaligned_t>{}, 0)
                                             | std::views::transform(detail::access_restrictor_fn{}));
         }
     }
@@ -371,7 +371,7 @@ template <typename stream_view_type, std::ranges::forward_range target_range_typ
 inline void format_sam_base::read_field(stream_view_type && stream_view, target_range_type & target)
 {
     if (!is_char<'*'>(*std::ranges::begin(stream_view)))
-        std::ranges::copy(stream_view | views::char_to<value_type_t<target_range_type>>,
+        std::ranges::copy(stream_view | views::char_to<std::ranges::range_value_t<target_range_type>>,
                           std::ranges::back_inserter(target));
     else
         std::ranges::next(std::ranges::begin(stream_view)); // skip '*'
@@ -399,11 +399,11 @@ inline void format_sam_base::read_field(stream_view_t && stream_view, arithmetic
         throw format_error{std::string("[CORRUPTED SAM FILE] The string '") +
                                        std::string(arithmetic_buffer.begin(), end) +
                                        "' could not be cast into type " +
-                                       detail::get_display_name_v<arithmetic_target_type>.str()};
+                                       detail::type_name_as_string<arithmetic_target_type>};
 
     if (res.ec == std::errc::result_out_of_range)
         throw format_error{std::string("[CORRUPTED SAM FILE] Casting '") + std::string(arithmetic_buffer.begin(), end) +
-                                       "' into type " + detail::get_display_name_v<arithmetic_target_type>.str() +
+                                       "' into type " + detail::type_name_as_string<arithmetic_target_type> +
                                        " would cause an overflow."};
 }
 
@@ -453,48 +453,46 @@ inline void format_sam_base::read_header(stream_view_type && stream_view,
         read_field(stream_view | views::take_until_or_throw(is_char<'\t'> || is_char<'\n'>), value);
     };
 
-    // @HQ line
-    // -------------------------------------------------------------------------------------------------------------
-    parse_tag_value(hdr.format_version); // parse required VN (version) tag
-
-    // The SO, SS and GO tag are optional and can appear in any order
-    while (is_char<'\t'>(*std::ranges::begin(stream_view)))
-    {
-        std::ranges::next(std::ranges::begin(stream_view));              // skip tab
-        std::string * who = std::addressof(hdr.grouping);
-
-        if (is_char<'S'>(*std::ranges::begin(stream_view)))
-        {
-            std::ranges::next(std::ranges::begin(stream_view));          // skip S
-
-            if (is_char<'O'>(*std::ranges::begin(stream_view)))          // SO (sorting) tag
-                who = std::addressof(hdr.sorting);
-            else if (is_char<'S'>(*std::ranges::begin(stream_view)))     // SS (sub-order) tag
-                who = std::addressof(hdr.subsorting);
-            else
-                throw format_error{std::string{"Illegal SAM header tag: S"} +
-                                   std::string{static_cast<char>(*std::ranges::begin(stream_view))}};
-        }
-        else if (!is_char<'G'>(*std::ranges::begin(stream_view)))        // GO (grouping) tag
-        {
-            throw format_error{std::string{"Illegal SAM header tag in @HG starting with:"} +
-                               std::string{static_cast<char>(*std::ranges::begin(stream_view))}};
-        }
-
-        parse_tag_value(*who);
-    }
-    std::ranges::next(std::ranges::begin(stream_view));                  // skip newline
-
-    // The rest of the header lines
-    // -------------------------------------------------------------------------------------------------------------
     while (is_char<'@'>(*std::ranges::begin(stream_view)))
     {
-        std::ranges::next(std::ranges::begin(stream_view));              // skip @
+        std::ranges::next(std::ranges::begin(stream_view)); // skip @
 
-        if (is_char<'S'>(*std::ranges::begin(stream_view)))              // SQ (sequence dictionary) tag
+        if (is_char<'H'>(*std::ranges::begin(stream_view))) // HD (header) tag
+        {
+            parse_tag_value(hdr.format_version); // parse required VN (version) tag
+
+            // The SO, SS and GO tag are optional and can appear in any order
+            while (is_char<'\t'>(*std::ranges::begin(stream_view)))
+            {
+                std::ranges::next(std::ranges::begin(stream_view)); // skip tab
+                std::string * who = std::addressof(hdr.grouping);
+
+                if (is_char<'S'>(*std::ranges::begin(stream_view)))
+                {
+                    std::ranges::next(std::ranges::begin(stream_view)); // skip S
+
+                    if (is_char<'O'>(*std::ranges::begin(stream_view))) // SO (sorting) tag
+                        who = std::addressof(hdr.sorting);
+                    else if (is_char<'S'>(*std::ranges::begin(stream_view))) // SS (sub-order) tag
+                        who = std::addressof(hdr.subsorting);
+                    else
+                        throw format_error{std::string{"Illegal SAM header tag: S"} +
+                                           std::string{static_cast<char>(*std::ranges::begin(stream_view))}};
+                }
+                else if (!is_char<'G'>(*std::ranges::begin(stream_view))) // GO (grouping) tag
+                {
+                    throw format_error{std::string{"Illegal SAM header tag in @HG starting with:"} +
+                                       std::string{static_cast<char>(*std::ranges::begin(stream_view))}};
+                }
+
+                parse_tag_value(*who);
+            }
+            std::ranges::next(std::ranges::begin(stream_view));                  // skip newline
+        }
+        else if (is_char<'S'>(*std::ranges::begin(stream_view)))              // SQ (sequence dictionary) tag
         {
             ref_info_present_in_header = true;
-            value_type_t<decltype(hdr.ref_ids())> id;
+            std::ranges::range_value_t<decltype(hdr.ref_ids())> id;
             std::tuple<int32_t, std::string> info{};
 
             parse_tag_value(id);                                         // parse required SN (sequence name) tag

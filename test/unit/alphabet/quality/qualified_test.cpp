@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -22,17 +22,17 @@
 #include "../semi_alphabet_test_template.hpp"
 #include "../composite/alphabet_tuple_base_test_template.hpp"
 
-using namespace seqan3;
-
 template <typename alphabet_type, typename phred_type>
-class alphabet_tuple_base_test<qualified<alphabet_type, phred_type>> : public ::testing::Test
+class alphabet_tuple_base_test<seqan3::qualified<alphabet_type, phred_type>> : public ::testing::Test
 {
 public:
-    using T = qualified<alphabet_type, phred_type>;
+    using T = seqan3::qualified<alphabet_type, phred_type>;
 
-    using other_type = std::conditional_t<std::is_same_v<alphabet_type, dna4>, rna4,
-                       std::conditional_t<std::is_same_v<alphabet_type, aa27>, aa27,
-                       std::conditional_t<std::is_same_v<alphabet_type, gapped<dna4>>, gapped<dna4>, alphabet_type>>>;
+    using other_type = std::conditional_t<std::is_same_v<alphabet_type, seqan3::dna4>, seqan3::rna4,
+                       std::conditional_t<std::is_same_v<alphabet_type, seqan3::aa27>, seqan3::aa27,
+                       std::conditional_t<std::is_same_v<alphabet_type, seqan3::gapped<seqan3::dna4>>,
+                                          seqan3::gapped<seqan3::dna4>,
+                                          alphabet_type>>>;
 
     T instance = T{value_1(), value_2()};
     T zero_instance = T{decltype(value_1()){}, decltype(value_2()){}};
@@ -64,14 +64,14 @@ public:
     }
 };
 
-using qualified_types = ::testing::Types<qualified<dna4, phred42>,
-                                         qualified<dna4, phred63>,
-                                         qualified<aa27, phred42>,
-                                         qualified<gapped<dna4>, phred42>,
-                                         dna4q>;
+using qualified_types = ::testing::Types<seqan3::qualified<seqan3::dna4, seqan3::phred42>,
+                                         seqan3::qualified<seqan3::dna4, seqan3::phred63>,
+                                         seqan3::qualified<seqan3::aa27, seqan3::phred42>,
+                                         seqan3::qualified<seqan3::gapped<seqan3::dna4>, seqan3::phred42>,
+                                         seqan3::dna4q>;
 
-INSTANTIATE_TYPED_TEST_CASE_P(qualified, alphabet_, qualified_types);
-INSTANTIATE_TYPED_TEST_CASE_P(qualified, semi_alphabet_test, qualified_types);
-INSTANTIATE_TYPED_TEST_CASE_P(qualified, alphabet_constexpr, qualified_types);
-INSTANTIATE_TYPED_TEST_CASE_P(qualified, semi_alphabet_constexpr, qualified_types);
-INSTANTIATE_TYPED_TEST_CASE_P(qualified, alphabet_tuple_base_test, qualified_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(qualified, alphabet_, qualified_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(qualified, semi_alphabet_test, qualified_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(qualified, alphabet_constexpr, qualified_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(qualified, semi_alphabet_constexpr, qualified_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(qualified, alphabet_tuple_base_test, qualified_types, );

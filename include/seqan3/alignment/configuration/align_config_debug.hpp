@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -13,7 +13,7 @@
 #pragma once
 
 #include <seqan3/alignment/configuration/detail.hpp>
-#include <seqan3/core/algorithm/algorithm_debugging.hpp>
+#include <seqan3/core/algorithm/configuration_element_debug_mode.hpp>
 #include <seqan3/core/algorithm/pipeable_config_element.hpp>
 
 namespace seqan3::align_cfg
@@ -32,7 +32,7 @@ namespace seqan3::align_cfg
  * \note This configuration is only useful for debugging purposes as it can have a significant impact on the
  *       performance.
  */
-inline constexpr detail::algorithm_debugging<std::integral_constant<detail::align_config_id,
-                                                                    detail::align_config_id::debug>> debug{};
+inline constexpr detail::debug_mode<std::integral_constant<detail::align_config_id,
+                                                           detail::align_config_id::debug>> debug{};
 //!\endcond
 }  // namespace seqan3::align_cfg

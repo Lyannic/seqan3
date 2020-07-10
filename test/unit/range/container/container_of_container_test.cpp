@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -13,28 +13,26 @@
 #include <seqan3/range/container/bitcompressed_vector.hpp>
 #include <seqan3/range/container/concatenated_sequences.hpp>
 #include <seqan3/test/cereal.hpp>
+#include <seqan3/test/expect_range_eq.hpp>
 #include <seqan3/test/pretty_printing.hpp>
 
-using namespace seqan3;
+using seqan3::operator""_dna4;
 
 template <typename T>
 class container_of_container : public ::testing::Test
 {};
 
-using container_of_container_types = ::testing::Types<std::vector<std::vector<dna4>>,
-                                                      concatenated_sequences<std::vector<dna4>>,
-                                                      concatenated_sequences<bitcompressed_vector<dna4>>>;
+using container_of_container_types =
+    ::testing::Types<std::vector<std::vector<seqan3::dna4>>,
+                     seqan3::concatenated_sequences<std::vector<seqan3::dna4>>,
+                     seqan3::concatenated_sequences<seqan3::bitcompressed_vector<seqan3::dna4>>>;
 
-TYPED_TEST_CASE(container_of_container, container_of_container_types);
-
-using In = std::ranges::iterator_t<seqan3::concatenated_sequences<seqan3::bitcompressed_vector<seqan3::dna4> > >;
-
-static_assert(std::readable<In>);
+TYPED_TEST_SUITE(container_of_container, container_of_container_types, );
 
 TYPED_TEST(container_of_container, concepts)
 {
-    EXPECT_TRUE(container<TypeParam>);
-    EXPECT_TRUE(container<value_type_t<TypeParam>>);
+    EXPECT_TRUE(seqan3::container<TypeParam>);
+    EXPECT_TRUE(seqan3::container<std::ranges::range_value_t<TypeParam>>);
 }
 
 TYPED_TEST(container_of_container, construction)
@@ -54,7 +52,7 @@ TYPED_TEST(container_of_container, construction)
     TypeParam t6{t3.begin(), t3.begin() + 2};
     EXPECT_EQ(t5, t6);
 
-    std::vector<std::vector<dna4>> other_vector{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
+    std::vector<std::vector<seqan3::dna4>> other_vector{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
     // direct from another container-of-container
     TypeParam t7{other_vector};
     // from another container-of-container's sub-range
@@ -67,7 +65,7 @@ TYPED_TEST(container_of_container, assign)
 {
     TypeParam t1{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
     TypeParam t2{"ACGT"_dna4, "ACGT"_dna4};
-    std::vector<std::vector<dna4>> other_vector{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
+    std::vector<std::vector<seqan3::dna4>> other_vector{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
 
     // n * value
     TypeParam t3;
@@ -87,7 +85,7 @@ TYPED_TEST(container_of_container, assign)
     EXPECT_EQ(t6, t1);
 
     // direct from another container-of-container
-    if constexpr (std::is_same_v<TypeParam, concatenated_sequences<std::vector<dna4>>>)
+    if constexpr (std::is_same_v<TypeParam, seqan3::concatenated_sequences<std::vector<seqan3::dna4>>>)
     {
         TypeParam t7, t8;
         t7.assign(other_vector);
@@ -103,16 +101,16 @@ TYPED_TEST(container_of_container, iterators)
     TypeParam const t2{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
 
     // begin
-    EXPECT_TRUE(std::ranges::equal(*t1.begin(),  "ACGT"_dna4));
-    EXPECT_TRUE(std::ranges::equal(*t1.cbegin(), "ACGT"_dna4));
-    EXPECT_TRUE(std::ranges::equal(*t2.begin(),  "ACGT"_dna4));
-    EXPECT_TRUE(std::ranges::equal(*t2.cbegin(), "ACGT"_dna4));
+    EXPECT_RANGE_EQ(*t1.begin(),  "ACGT"_dna4);
+    EXPECT_RANGE_EQ(*t1.cbegin(), "ACGT"_dna4);
+    EXPECT_RANGE_EQ(*t2.begin(),  "ACGT"_dna4);
+    EXPECT_RANGE_EQ(*t2.cbegin(), "ACGT"_dna4);
 
     // end and arithmetic
-    EXPECT_TRUE(std::ranges::equal(*(t1.end()  - 1), "GAGGA"_dna4));
-    EXPECT_TRUE(std::ranges::equal(*(t1.cend() - 1), "GAGGA"_dna4));
-    EXPECT_TRUE(std::ranges::equal(*(t2.end()  - 1), "GAGGA"_dna4));
-    EXPECT_TRUE(std::ranges::equal(*(t2.cend() - 1), "GAGGA"_dna4));
+    EXPECT_RANGE_EQ(*(t1.end()  - 1), "GAGGA"_dna4);
+    EXPECT_RANGE_EQ(*(t1.cend() - 1), "GAGGA"_dna4);
+    EXPECT_RANGE_EQ(*(t2.end()  - 1), "GAGGA"_dna4);
+    EXPECT_RANGE_EQ(*(t2.cend() - 1), "GAGGA"_dna4);
 
     // convertibility between const and non-const
     EXPECT_TRUE(t1.cend() == t1.end());
@@ -128,28 +126,28 @@ TYPED_TEST(container_of_container, element_access)
     TypeParam const t2{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
 
     // at
-    EXPECT_TRUE(std::ranges::equal(t1.at(0), "ACGT"_dna4));
-    EXPECT_TRUE(std::ranges::equal(t2.at(0), "ACGT"_dna4));
+    EXPECT_RANGE_EQ(t1.at(0), "ACGT"_dna4);
+    EXPECT_RANGE_EQ(t2.at(0), "ACGT"_dna4);
     //TODO once we have throwing assert, check at's ability to throw
 
     // []
-    EXPECT_TRUE(std::ranges::equal(t1[0], "ACGT"_dna4));
-    EXPECT_TRUE(std::ranges::equal(t2[0], "ACGT"_dna4));
+    EXPECT_RANGE_EQ(t1[0], "ACGT"_dna4);
+    EXPECT_RANGE_EQ(t2[0], "ACGT"_dna4);
 
     // front
-    EXPECT_TRUE(std::ranges::equal(t1.front(), "ACGT"_dna4));
-    EXPECT_TRUE(std::ranges::equal(t2.front(), "ACGT"_dna4));
+    EXPECT_RANGE_EQ(t1.front(), "ACGT"_dna4);
+    EXPECT_RANGE_EQ(t2.front(), "ACGT"_dna4);
 
     // back
-    EXPECT_TRUE(std::ranges::equal(t1.back(), "GAGGA"_dna4));
-    EXPECT_TRUE(std::ranges::equal(t2.back(), "GAGGA"_dna4));
+    EXPECT_RANGE_EQ(t1.back(), "GAGGA"_dna4);
+    EXPECT_RANGE_EQ(t2.back(), "GAGGA"_dna4);
 
-    if constexpr (std::is_same_v<TypeParam, concatenated_sequences<std::vector<dna4>>>)
+    if constexpr (std::is_same_v<TypeParam, seqan3::concatenated_sequences<std::vector<seqan3::dna4>>>)
     {
         using size_type = typename TypeParam::size_type;
         // concat
-        EXPECT_TRUE(std::ranges::equal(t1.concat(), "ACGTACGTGAGGA"_dna4));
-        EXPECT_TRUE(std::ranges::equal(t2.concat(), "ACGTACGTGAGGA"_dna4));
+        EXPECT_RANGE_EQ(t1.concat(), "ACGTACGTGAGGA"_dna4);
+        EXPECT_RANGE_EQ(t2.concat(), "ACGTACGTGAGGA"_dna4);
 
         // data
         EXPECT_EQ(std::get<0>(t1.raw_data()), "ACGTACGTGAGGA"_dna4);
@@ -197,7 +195,7 @@ TYPED_TEST(container_of_container, capacity)
     t1.shrink_to_fit();
     EXPECT_LE(t1.capacity(), t1.size()*2);
 
-    if constexpr (std::is_same_v<TypeParam, concatenated_sequences<std::vector<dna4>>>)
+    if constexpr (std::is_same_v<TypeParam, seqan3::concatenated_sequences<std::vector<seqan3::dna4>>>)
     {
         // size
         EXPECT_EQ(t0.concat_size(), 0u);
@@ -330,5 +328,5 @@ TYPED_TEST(container_of_container, swap)
 TYPED_TEST(container_of_container, serialisation)
 {
     TypeParam t1{"ACGT"_dna4, "ACGT"_dna4, "GAGGA"_dna4};
-    test::do_serialisation(t1);
+    seqan3::test::do_serialisation(t1);
 }

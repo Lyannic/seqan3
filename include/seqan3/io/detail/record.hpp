@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <seqan3/core/concept/tuple.hpp>
 #include <seqan3/core/type_list/traits.hpp>
 #include <seqan3/io/record.hpp>
 #include <seqan3/range/views/repeat.hpp>
@@ -135,8 +136,8 @@ auto const & get_or_ignore(record<field_types, field_ids> const & r)
 }
 
 //!\copydoc seqan3::detail::get_or_ignore
-template <size_t i, typename ...types>
-auto & get_or_ignore(std::tuple<types...> & t)
+template <size_t i, template <tuple_like ...types_> typename tuple_like_t, typename ...types>
+auto & get_or_ignore(tuple_like_t<types...> & t)
 {
     if constexpr (i < sizeof...(types))
         return std::get<i>(t);
@@ -145,8 +146,8 @@ auto & get_or_ignore(std::tuple<types...> & t)
 }
 
 //!\copydoc seqan3::detail::get_or_ignore
-template <size_t i, typename ...types>
-auto const & get_or_ignore(std::tuple<types...> const & t)
+template <size_t i, template <tuple_like ...types_> typename tuple_like_t, typename ...types>
+auto const & get_or_ignore(tuple_like_t<types...> const & t)
 {
     if constexpr (i < sizeof...(types))
         return std::get<i>(t);

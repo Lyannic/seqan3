@@ -30,15 +30,13 @@ write_file_dummy_struct go{};
 #include <seqan3/io/alignment_file/all.hpp>
 #include <seqan3/std/filesystem>
 
-using namespace seqan3;
-
 int main()
 {
     std::filesystem::path tmp_dir = std::filesystem::temp_directory_path(); // get the temp directory
 
-    alignment_file_input fin{tmp_dir/"my.sam", fields<field::CIGAR>{}};
+    seqan3::alignment_file_input fin{tmp_dir/"my.sam"}; // default fields
 
-    for (auto & [cigar] : fin)
-        debug_stream << cigar << std::endl;
+    for (auto & rec : fin)
+        seqan3::debug_stream << seqan3::get<seqan3::field::cigar>(rec) << '\n'; // access cigar vector
 }
 //![code]

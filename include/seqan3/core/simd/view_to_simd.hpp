@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <seqan3/alphabet/concept.hpp>
 #include <seqan3/core/detail/pack_algorithm.hpp>
 #include <seqan3/core/simd/concept.hpp>
 #include <seqan3/core/simd/simd_algorithm.hpp>
@@ -20,13 +21,11 @@
 #include <seqan3/core/type_traits/range.hpp>
 #include <seqan3/core/type_traits/template_inspection.hpp>
 #include <seqan3/range/views/detail.hpp>
-#include <seqan3/range/views/view_all.hpp>
+#include <seqan3/range/views/type_reduce.hpp>
 #include <seqan3/range/views/zip.hpp>
 #include <seqan3/std/algorithm>
 #include <seqan3/std/iterator>
 #include <seqan3/std/ranges>
-
-#include <seqan3/core/debug_stream.hpp>
 
 namespace seqan3::detail
 {
@@ -63,17 +62,17 @@ private:
 
     static_assert(std::ranges::forward_range<urng_t>,
                   "The underlying range must model forward_range.");
-    static_assert(std::ranges::input_range<value_type_t<urng_t>>,
+    static_assert(std::ranges::input_range<std::ranges::range_value_t<urng_t>>,
                   "Expects the value type of the underlying range to be an input_range.");
-    static_assert(std::default_constructible<value_type_t<urng_t>>,
+    static_assert(std::default_constructible<std::ranges::range_value_t<urng_t>>,
                   "Expects the inner range to be default constructible.");
-    static_assert(semialphabet<value_type_t<value_type_t<urng_t>>>,
+    static_assert(semialphabet<std::ranges::range_value_t<std::ranges::range_value_t<urng_t>>>,
                   "Expects semi-alphabet as value type of the inner range.");
 
     /*!\name Auxiliary types
      * \{
      */
-    using inner_range_type = value_type_t<urng_t>; //!< The inner range type.
+    using inner_range_type = std::ranges::range_value_t<urng_t>; //!< The inner range type.
     using chunk_type = std::array<simd_t, simd_traits<simd_t>::length>; //!< The underlying type to hold the chunks.
     using scalar_type = typename simd_traits<simd_t>::scalar_type; //!< The scalar type.
     //!\brief The SIMD type with maximal number of lanes for the current arch.
@@ -86,9 +85,8 @@ private:
     //!\brief Check if fast load is enabled.
     static constexpr bool fast_load = std::ranges::contiguous_range<inner_range_type> &&
                                       std::sized_sentinel_for<std::ranges::iterator_t<inner_range_type>,
-                                                         std::ranges::sentinel_t<inner_range_type>> &&
-                                      sizeof(alphabet_rank_t<value_type_t<inner_range_type>>) == 1 &&
-                                      sizeof(scalar_type) <= 2; // micro benchmark suggest using int8_t or int16_t has best performance.
+                                                              std::ranges::sentinel_t<inner_range_type>> &&
+                                      sizeof(alphabet_rank_t<std::ranges::range_value_t<inner_range_type>>) == 1;
 
     //!\brief The size of one chunk. Equals the number of elements in the simd vector.
     static constexpr uint8_t chunk_size = simd_traits<simd_t>::length;
@@ -97,7 +95,7 @@ private:
     //!\brief The total number of chunks that can be cached.
     static constexpr uint8_t total_chunks = fast_load ? (chunks_per_load * chunks_per_load) : 1;
     //!\brief The alphabet size.
-    static constexpr auto alphabet_size = alphabet_size<value_type_t<inner_range_type>>;
+    static constexpr auto alphabet_size = alphabet_size<std::ranges::range_value_t<inner_range_type>>;
     //!\}
 
     // Forward declare class' iterator type. See definition below.
@@ -138,7 +136,7 @@ public:
              std::ranges::viewable_range<other_urng_t>
     //!\endcond
     constexpr view_to_simd(other_urng_t && urng, scalar_type const padding_value = alphabet_size) :
-        view_to_simd{views::all(std::forward<other_urng_t>(urng)), padding_value}
+        view_to_simd{views::type_reduce(std::forward<other_urng_t>(urng)), padding_value}
     {}
     //!\}
 
@@ -190,7 +188,7 @@ public:
 private:
 
     urng_t urng{}; //!< The underlying range.
-    value_type_t<urng_t> empty_inner_range{}; //!< A defaulted inner range if fewer sequences are present.
+    std::ranges::range_value_t<urng_t> empty_inner_range{}; //!< A defaulted inner range if fewer sequences are present.
     std::array<chunk_type, total_chunks> cached_simd_chunks{}; //!< The cached chunks of transformed simd vectors.
     simd_t padding_simd_vector{}; //!< A cached simd vector with the padding symbol.
     scalar_type padding_value{}; //!< The padding value used to fill the corresponding simd vector element.
@@ -200,8 +198,8 @@ private:
  *
  * \details
  *
- * This iterator models std::input_iterator and std::Cpp17input_iterator.
- * When dereferencing it returns a reference to a range over simd vectors of type `simd_t`.
+ * This iterator models std::input_iterator.
+ * When dereferencing it returns a span over a range with value type `simd_t`.
  */
 template <std::ranges::view urng_t, simd::simd_concept simd_t>
 class view_to_simd<urng_t, simd_t>::iterator_type
@@ -210,9 +208,9 @@ public:
     /*!\name Associated types
      * \{
      */
-    using reference = chunk_type &; //!< The reference type.
+    using reference = std::span<std::ranges::range_value_t<chunk_type>>; //!< The reference type.
     using value_type = chunk_type; //!< The value type.
-    using pointer = chunk_type *; //!< The pointer type.
+    using pointer = void; //!< The pointer type.
     using difference_type = ptrdiff_t; //!< The difference type.
     using iterator_category = std::input_iterator_tag; //!< The iterator category.
     using iterator_concept = iterator_category; //!< The iterator concept.
@@ -252,7 +250,6 @@ public:
             cached_iter[seq_id] = std::ranges::begin(this_view.empty_inner_range);
             cached_sentinel[seq_id] = std::ranges::end(this_view.empty_inner_range);
         }
-
         // Check if this is the final chunk already.
         final_chunk = all_iterators_reached_sentinel();
 
@@ -268,13 +265,8 @@ public:
     constexpr reference operator*() const noexcept
     {
         assert(this_view != nullptr);
-        return this_view->cached_simd_chunks[current_chunk_pos];
-    }
-
-    //!\brief Returns a pointer to the current chunk of simd vectors.
-    constexpr pointer operator->() const noexcept
-    {
-        return std::addressof(this->operator*());
+        return std::span{this_view->cached_simd_chunks[current_chunk_pos].begin(),
+                         (current_chunk_pos == final_chunk_pos) ? final_chunk_size : chunk_size};
     }
     //!\}
 
@@ -287,7 +279,7 @@ public:
         if constexpr (fast_load)
         { // Check if cached chunks have been already consumed and we need to fetch the next chunks.
             if (current_chunk_pos == final_chunk_pos)
-        {
+            {
                 underflow();
                 current_chunk_pos = 0;
             }
@@ -356,26 +348,26 @@ private:
     {
         if constexpr (chunk_size == simd_traits<max_simd_type>::length / 2)  // upcast into 2 vectors.
         {
-            return std::array{simd::upcast<simd_t>(extract_halve<0>(row)),  // 1. halve
-                                simd::upcast<simd_t>(extract_halve<1>(row))}; // 2. halve
+            return std::array{simd::upcast<simd_t>(extract_halve<0>(row)),  // 1. half
+                              simd::upcast<simd_t>(extract_halve<1>(row))}; // 2. half
         }
         else if constexpr (chunk_size == simd_traits<max_simd_type>::length / 4) // upcast into 4 vectors.
         {
             return std::array{simd::upcast<simd_t>(extract_quarter<0>(row)),  // 1. quarter
-                                simd::upcast<simd_t>(extract_quarter<1>(row)),  // 2. quarter
-                                simd::upcast<simd_t>(extract_quarter<2>(row)),  // 3. quarter
-                                simd::upcast<simd_t>(extract_quarter<3>(row))}; // 4. quarter
+                              simd::upcast<simd_t>(extract_quarter<1>(row)),  // 2. quarter
+                              simd::upcast<simd_t>(extract_quarter<2>(row)),  // 3. quarter
+                              simd::upcast<simd_t>(extract_quarter<3>(row))}; // 4. quarter
         }
         else if constexpr (chunk_size == simd_traits<max_simd_type>::length / 8) // upcast into 8 vectors.
         {
             return std::array{simd::upcast<simd_t>(extract_eighth<0>(row)),   // 1. eighth
-                                simd::upcast<simd_t>(extract_eighth<1>(row)),   // 2. eighth
-                                simd::upcast<simd_t>(extract_eighth<2>(row)),   // 3. eighth
-                                simd::upcast<simd_t>(extract_eighth<3>(row)),   // 4. eighth
-                                simd::upcast<simd_t>(extract_eighth<4>(row)),   // 5. eighth
-                                simd::upcast<simd_t>(extract_eighth<5>(row)),   // 6. eighth
-                                simd::upcast<simd_t>(extract_eighth<6>(row)),   // 7. eighth
-                                simd::upcast<simd_t>(extract_eighth<7>(row))};  // 8. eighth
+                              simd::upcast<simd_t>(extract_eighth<1>(row)),   // 2. eighth
+                              simd::upcast<simd_t>(extract_eighth<2>(row)),   // 3. eighth
+                              simd::upcast<simd_t>(extract_eighth<3>(row)),   // 4. eighth
+                              simd::upcast<simd_t>(extract_eighth<4>(row)),   // 5. eighth
+                              simd::upcast<simd_t>(extract_eighth<5>(row)),   // 6. eighth
+                              simd::upcast<simd_t>(extract_eighth<6>(row)),   // 7. eighth
+                              simd::upcast<simd_t>(extract_eighth<7>(row))};  // 8. eighth
         }
         else
         {
@@ -428,15 +420,17 @@ private:
      */
     constexpr bool all_iterators_reached_sentinel() const noexcept
     {
-        return std::ranges::all_of(views::zip(cached_iter, cached_sentinel), [] (auto && tpl)
-    {
-            return std::get<0>(tpl) == std::get<1>(tpl);
+        using std::get;
+
+        return std::ranges::all_of(views::zip(cached_iter, cached_sentinel), [] (auto && iterator_sentinel_pair)
+        {
+            return get<0>(iterator_sentinel_pair) == get<1>(iterator_sentinel_pair);
         });
     }
 
     /*!\brief Convert a single column into a simd vector.
      * \tparam indices A non-type template parameter pack over the sequence indices.
-     * \param idx_seq The index sequence.
+     *
      * \returns A simd vector filled with the symbols of the sequences at the current position.
      *
      * \details
@@ -444,27 +438,49 @@ private:
      * Converts a single column over the sequences into a simd type. If the end of one sequence was already
      * reached it will return the padding value instead.
      */
-    template <size_t ...indices>
-    constexpr simd_t convert_single_column(std::index_sequence<indices...> const & SEQAN3_DOXYGEN_ONLY(idx_seq))
+    constexpr simd_t convert_single_column()
         noexcept
     {
-        // Gets the current character from the sequence at index `idx` and increments the respective iterator.
-        return simd_t
+        simd_t simd_column{};
+        for (size_t idx = 0u; idx < chunk_size; ++idx)
         {
-            [this] (size_t const idx) -> scalar_type
+            if (cached_iter[idx] == cached_sentinel[idx])
             {
-                if (cached_iter[idx] == cached_sentinel[idx])
-                {
-                    return this_view->padding_value;
-                }
-                else // only increment if not at end.
-                {
-                    scalar_type tmp = static_cast<scalar_type>(to_rank(*cached_iter[idx]));
-                    ++cached_iter[idx];
-                    return tmp;
-                }
-            }(indices)...
+                simd_column[idx] = this_view->padding_value;
+            }
+            else
+            {
+                simd_column[idx] = static_cast<scalar_type>(seqan3::to_rank(*cached_iter[idx]));
+                ++cached_iter[idx];
+            }
         };
+        return simd_column;
+    }
+
+    /*!\brief Updates the end of the final chunk and sets the index of the final chunk.
+     *
+     * \tparam array_t The array type containing the iterators over sequences.
+     * \param[in] iterators_before_update The array containing the iterators before the load operations.
+     *
+     * \details
+     *
+     * Sets the index of the final chunk (`final_chunk_pos`) and updates the end position of the final chunk such that
+     * the view ends at the last character of the longest sequences contained in the set of sequences to be transformed.
+     */
+    template <typename array_t>
+    constexpr void update_final_chunk_position(array_t const & iterators_before_update) noexcept
+    {
+        size_t max_distance = 0;
+        for (auto && [it, sent] : views::zip(iterators_before_update, cached_sentinel))
+            max_distance = std::max<size_t>(std::ranges::distance(it, sent), max_distance);
+
+        assert(max_distance > 0);
+        assert(max_distance <= (total_chunks * chunk_size));
+
+        --max_distance;
+        final_chunk_pos = max_distance  / chunk_size;
+        // first we should be able to check the chunk position.
+        final_chunk_size = (max_distance % chunk_size) + 1;
     }
 
     //!\brief Fetches the next available chunk(s).
@@ -500,41 +516,36 @@ private:
         // (32 bit) or 256 2x2 matrices (64 bit).
 
         constexpr int8_t max_size = simd_traits<simd_t>::max_length;
-        constexpr int8_t num_chunks = chunks_per_load;
         std::array<max_simd_type, max_size> matrix{};
-        final_chunk_pos = 0;  // reset the final chunk position, since this could be the last load.
+        decltype(cached_iter) iterators_before_update{cached_iter}; // Keep track of iterators before the update.
         // Iterate over each sequence.
-        for (uint8_t i = 0; i < chunk_size; ++i)
+        for (uint8_t sequence_pos = 0; sequence_pos < chunk_size; ++sequence_pos)
         {  // Iterate over each block depending on the packing of the target simd vector.
-            uint8_t last_chunk_pos = 0;
-            for (uint8_t j = 0; j < num_chunks; ++j)
+            for (uint8_t chunk_pos = 0; chunk_pos < chunks_per_load; ++chunk_pos)
             {
-                uint8_t pos = j * chunk_size + i; // matrix entry to fill
-                if (cached_sentinel[i] - cached_iter[i] >= max_size) // not in final block
-                {
-                    matrix[pos] = simd::load<max_simd_type>(std::addressof(*cached_iter[i]));
-                    std::advance(cached_iter[i], max_size);
-                    last_chunk_pos += num_chunks; // We have read num_chunks at once.
+                uint8_t pos = chunk_pos * chunk_size + sequence_pos; // matrix entry to fill
+                if (cached_sentinel[sequence_pos] - cached_iter[sequence_pos] >= max_size)
+                { // Not in final block, thus load directly from memory.
+                    matrix[pos] = simd::load<max_simd_type>(std::addressof(*cached_iter[sequence_pos]));
+                    std::advance(cached_iter[sequence_pos], max_size);
                 }
                 else  // Loads the final block byte wise in order to not load from uninitialised memory.
                 {
-                    auto & it = cached_iter[i];
-                    max_simd_type & tmp = matrix[pos];
-                    tmp = simd::fill<max_simd_type>(~0);
-                    for (int8_t idx = 0; it != cached_sentinel[i]; ++it, ++idx)
-                    {
-                        tmp[idx] = seqan3::to_rank(*it);
-                        if (idx % chunk_size == 0)
-                            ++last_chunk_pos; // increment whenever we store an element from the num_chunks boundary
-                    }
+                    matrix[pos] = simd::fill<max_simd_type>(~0);
+                    auto & sequence_it = cached_iter[sequence_pos];
+                    for (int8_t idx = 0; sequence_it != cached_sentinel[sequence_pos]; ++sequence_it, ++idx)
+                        matrix[pos][idx] = seqan3::to_rank(*sequence_it);
                 }
             }
-            // Subtract one from last_chunk_pos to get the correct 0-based index.
-            final_chunk_pos = std::max<int8_t>(final_chunk_pos, --last_chunk_pos);
         }
-        final_chunk = all_iterators_reached_sentinel();
-        simd::transpose(matrix);
 
+        // Handle final chunk which might not end at an offset which is not a multiple of `chunk_size`.
+        final_chunk = all_iterators_reached_sentinel();
+
+        if (final_chunk)
+            update_final_chunk_position(iterators_before_update);
+
+        simd::transpose(matrix);
         split_into_sub_matrices(std::move(matrix));
     }
 
@@ -548,10 +559,14 @@ private:
         if (at_end)  // reached end of stream.
             return;
 
+        decltype(cached_iter) iterators_before_update{cached_iter}; // Keep track of iterators before the update.
         for (size_t i = 0; i < chunk_size; ++i)
-            this_view->cached_simd_chunks[0][i] = convert_single_column(std::make_index_sequence<chunk_size>{});
+            this_view->cached_simd_chunks[0][i] = convert_single_column();
 
         final_chunk = all_iterators_reached_sentinel();
+
+        if (final_chunk)
+            update_final_chunk_position(iterators_before_update);
     }
 
     //!\brief Array containing the cached sequence iterators over the inner ranges.
@@ -560,8 +575,10 @@ private:
     std::array<std::ranges::sentinel_t<inner_range_type>, chunk_size> cached_sentinel{};
     //!\brief Pointer to the associated range.
     view_to_simd * this_view{nullptr};
+    //!\brief The size of the final chunk.
+    uint8_t final_chunk_size{chunk_size};
     //!\brief The final chunk position.
-    uint8_t final_chunk_pos{0};
+    uint8_t final_chunk_pos{total_chunks - 1};
     //!\brief The current chunk position.
     uint8_t current_chunk_pos{0};
     //!\brief Flag indicating that final chunk was reached.
@@ -614,12 +631,12 @@ struct to_simd_fn
             "The underlying range in views::to_simd must model std::ranges::forward_range.");
         static_assert(std::ranges::viewable_range<urng_t>,
             "The underlying range in views::to_simd must model std::ranges::viewable_range.");
-        static_assert(std::ranges::input_range<value_type_t<urng_t>>,
+        static_assert(std::ranges::input_range<std::ranges::range_value_t<urng_t>>,
             "The value type of the underlying range must model std::ranges::input_range.");
-        static_assert(semialphabet<value_type_t<value_type_t<urng_t>>>,
+        static_assert(semialphabet<std::ranges::range_value_t<std::ranges::range_value_t<urng_t>>>,
             "The value type of the inner ranges must model seqan3::semialphabet.");
 
-        return view_to_simd<all_view<urng_t>, simd_t>{std::forward<urng_t>(urange), padding_value};
+        return view_to_simd<type_reduce_view<urng_t>, simd_t>{std::forward<urng_t>(urange), padding_value};
     }
 
     /*!\brief Call the view's constructor with the underlying std::ranges::viewable_range as argument.
@@ -633,12 +650,12 @@ struct to_simd_fn
             "The underlying range in views::to_simd must model std::ranges::forward_range.");
         static_assert(std::ranges::viewable_range<urng_t>,
             "The underlying range in views::to_simd must model std::ranges::viewable_range.");
-        static_assert(std::ranges::input_range<value_type_t<urng_t>>,
+        static_assert(std::ranges::input_range<std::ranges::range_value_t<urng_t>>,
             "The value type of the underlying range must model std::ranges::input_range.");
-        static_assert(semialphabet<value_type_t<value_type_t<urng_t>>>,
+        static_assert(semialphabet<std::ranges::range_value_t<std::ranges::range_value_t<urng_t>>>,
             "The value type of the inner ranges must model seqan3::semialphabet.");
 
-        return view_to_simd<all_view<urng_t>, simd_t>{std::forward<urng_t>(urange)};
+        return view_to_simd<type_reduce_view<urng_t>, simd_t>{std::forward<urng_t>(urange)};
     }
 
     //!\brief Overloaded bit-operator to allow chaining with other ranges.
@@ -673,34 +690,34 @@ namespace seqan3::views
  * the size of `urange` <= simd_traits<simd_t>::length.
  * After applying the transformation one column of the outer range is transposed into a simd vector.
  * This means that the characters of all sequences at a given position `x` are stored in a simd vector retaining the
- * original order. The returned range itself is a range-of-ranges. When dereferencing the iterator a std::array with
- * simd length many vectors is returned. If a sequence is empty or ends before the largest sequence in the collection,
- * it can be padded with an optional value.
+ * original order. The returned range itself is a range-of-ranges. When dereferencing the iterator a std::span over
+ * a std::array with at most simd length many vectors is returned. If a sequence is empty or ends before the largest
+ * sequence in the collection, it can be padded with an optional value.
  *
  * ### View properties
  *
- * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)                                               |
- * |----------------------------------|:-------------------------------------:|:----------------------------------------------------------------------------:|
- * | std::ranges::input_range         | *required*                            | *preserved*                                                                  |
- * | std::ranges::forward_range       | *required*                            | *lost*                                                                       |
- * | std::ranges::bidirectional_range |                                       | *lost*                                                                       |
- * | std::ranges::random_access_range |                                       | *lost*                                                                       |
- * | std::ranges::contiguous_range    |                                       | *lost*                                                                       |
- * |                                  |                                       |                                                                              |
- * | std::ranges::viewable_range      | *required*                            | *guaranteed*                                                                 |
- * | std::ranges::view                |                                       | *guaranteed*                                                                 |
- * | std::ranges::sized_range         |                                       | *preserved*  (iff `std::ranges::sized_range<value_type_t<urng_t>>` is `true`) |
- * | std::ranges::common_range        |                                       | *lost*                                                                       |
- * | std::ranges::output_range        |                                       | *lost*                                                                       |
- * | seqan3::const_iterable_range     |                                       | *lost*                                                                       |
- * |                                  |                                       |                                                                              |
- * | std::ranges::range_reference_t   |                                       | std::array<simd_t, simd_traits<simd_t>::length> &                            |
+ * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)                                                |
+ * |----------------------------------|:-------------------------------------:|:-----------------------------------------------------------------------------:|
+ * | std::ranges::input_range         | *required*                            | *preserved*                                                                   |
+ * | std::ranges::forward_range       | *required*                            | *lost*                                                                        |
+ * | std::ranges::bidirectional_range |                                       | *lost*                                                                        |
+ * | std::ranges::random_access_range |                                       | *lost*                                                                        |
+ * | std::ranges::contiguous_range    |                                       | *lost*                                                                        |
+ * |                                  |                                       |                                                                               |
+ * | std::ranges::viewable_range      | *required*                            | *guaranteed*                                                                  |
+ * | std::ranges::view                |                                       | *guaranteed*                                                                  |
+ * | std::ranges::sized_range         |                                       | *preserved*  (iff `std::ranges::sized_range<std::ranges::range_value_t<urng_t>>` is `true`) |
+ * | std::ranges::common_range        |                                       | *lost*                                                                        |
+ * | std::ranges::output_range        |                                       | *lost*                                                                        |
+ * | seqan3::const_iterable_range     |                                       | *lost*                                                                        |
+ * |                                  |                                       |                                                                               |
+ * | std::ranges::range_reference_t   |                                       | std::span<simd_t>                                                             |
  *
  *
  * * `urng_t` is the type of the range modified by this view (input).
- * * the expression `std::ranges::input_range<value_type_t<urng_t>` must evaluate to `true`
- * * the expression `std::default_constructible<value_type_t<urng_t>>` must evaluate to `true`
- * * the expression `semialphabet<value_type_t<value_type_t<urng_t>>>` must evaluate to `true`
+ * * the expression `std::ranges::input_range<std::ranges::range_value_t<urng_t>` must evaluate to `true`
+ * * the expression `std::default_constructible<std::ranges::range_value_t<urng_t>>` must evaluate to `true`
+ * * the expression `semialphabet<std::ranges::range_value_t<std::ranges::range_value_t<urng_t>>>` must evaluate to `true`
  * * `rrng_type` is the type of the range returned by this view.
  * * for more details, see \ref views.
  *

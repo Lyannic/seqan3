@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -10,26 +10,28 @@
 
 #include "helper_search_scheme.hpp"
 
-#include <seqan3/search/algorithm/detail/search_scheme_algorithm.hpp>
+#include <seqan3/search/detail/search_scheme_algorithm.hpp>
 
 #include <gtest/gtest.h>
-
-using namespace seqan3;
 
 template <uint8_t min_error, uint8_t max_error, bool precomputed_scheme>
 void error_distributions(auto & expected, auto & actual)
 {
     if constexpr (precomputed_scheme)
     {
-        auto const & oss{detail::optimum_search_scheme<min_error, max_error>};
-        search_scheme_error_distribution(actual, oss);
-        search_scheme_error_distribution(expected, trivial_search_scheme(min_error, max_error, oss.front().blocks()));
+        auto const & oss{seqan3::detail::optimum_search_scheme<min_error, max_error>};
+        seqan3::search_scheme_error_distribution(actual, oss);
+        seqan3::search_scheme_error_distribution(expected, seqan3::trivial_search_scheme(min_error,
+                                                                                         max_error,
+                                                                                         oss.front().blocks()));
     }
     else
     {
-        auto const & ss{detail::compute_ss(min_error, max_error)};
-        search_scheme_error_distribution(actual, ss);
-        search_scheme_error_distribution(expected, trivial_search_scheme(min_error, max_error, ss.front().blocks()));
+        auto const & ss{seqan3::detail::compute_ss(min_error, max_error)};
+        seqan3::search_scheme_error_distribution(actual, ss);
+        seqan3::search_scheme_error_distribution(expected, seqan3::trivial_search_scheme(min_error,
+                                                                                         max_error,
+                                                                                         ss.front().blocks()));
     }
     std::sort(expected.begin(), expected.end());
     std::sort(actual.begin(), actual.end());
@@ -117,11 +119,13 @@ bool check_disjoint_search_scheme()
 {
     std::vector<std::vector<uint8_t> > error_distributions;
 
-    auto const & oss{detail::optimum_search_scheme<min_error, max_error>};
-    search_scheme_error_distribution(error_distributions, oss);
+    auto const & oss{seqan3::detail::optimum_search_scheme<min_error, max_error>};
+    seqan3::search_scheme_error_distribution(error_distributions, oss);
     uint64_t size = error_distributions.size();
     std::sort(error_distributions.begin(), error_distributions.end());
-    error_distributions.erase(std::unique(error_distributions.begin(), error_distributions.end()), error_distributions.end());
+    error_distributions.erase(std::unique(error_distributions.begin(),
+                                          error_distributions.end()),
+                                          error_distributions.end());
     return size == error_distributions.size();
 }
 

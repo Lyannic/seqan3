@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -77,19 +77,27 @@ public:
 
     using base_type::base_type; // Inherit non-default constructors
 
-
+#if SEQAN3_DOXYGEN_ONLY(1)0
     //!\copydoc alphabet_tuple_base::alphabet_tuple_base(component_type const alph)
-    SEQAN3_DOXYGEN_ONLY(( constexpr structured_aa(component_type const alph) {} ))
-    //!\copydoc alphabet_tuple_base::alphabet_tuple_base(indirect_component_type const alph)
-    SEQAN3_DOXYGEN_ONLY(( constexpr structured_aa(indirect_component_type const alph) {} ))
-    //!\copydoc alphabet_tuple_base::operator=(component_type const alph)
-    SEQAN3_DOXYGEN_ONLY(( constexpr structured_aa & operator=(component_type const alph) {} ))
-    //!\copydoc alphabet_tuple_base::operator=(indirect_component_type const alph)
-    SEQAN3_DOXYGEN_ONLY(( constexpr structured_aa & operator=(indirect_component_type const alph) {} ))
-    //!\}
+    template <typename component_type>
+    constexpr structured_aa(component_type const alph) {}
 
-    // Inherit operators from base
+    //!\copydoc alphabet_tuple_base::alphabet_tuple_base(indirect_component_type const alph)
+    template <typename indirect_component_type>
+    constexpr structured_aa(indirect_component_type const alph) {}
+
+    //!\copydoc alphabet_tuple_base::operator=(component_type const alph)
+    template <typename component_type>
+    constexpr structured_aa & operator=(component_type const alph) {}
+
+    //!\copydoc alphabet_tuple_base::operator=(indirect_component_type const alph)
+    template <typename indirect_component_type>
+    constexpr structured_aa & operator=(indirect_component_type const alph) {}
+#endif
+
+    //!\brief Inherit operators from base
     using base_type::operator=;
+    //!\}
 
     /*!\name Write functions
      * \{

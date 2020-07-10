@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -39,10 +39,7 @@ struct simulated_alignment_test : public ::testing::Test
     }
 };
 
-TYPED_TEST_CASE_P(simulated_alignment_test);
-
-using namespace seqan3;
-using namespace seqan3::detail;
+TYPED_TEST_SUITE_P(simulated_alignment_test);
 
 TYPED_TEST_P(simulated_alignment_test, linear_alignment)
 {
@@ -137,4 +134,4 @@ TYPED_TEST_P(simulated_alignment_test, linear_alignment)
     EXPECT_TRUE(std::equal(cmp_matrix.begin(), cmp_matrix.end(), this->gold_matrix().begin()));
 }
 
-REGISTER_TYPED_TEST_CASE_P(simulated_alignment_test, linear_alignment);
+REGISTER_TYPED_TEST_SUITE_P(simulated_alignment_test, linear_alignment);

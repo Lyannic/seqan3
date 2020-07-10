@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -15,7 +15,17 @@
 #include <tuple>
 #include <type_traits>
 
-#include <seqan3/core/type_traits/function.hpp>
+#include <seqan3/core/platform.hpp>
+
+// ----------------------------------------------------------------------------
+// is_constexpr
+// ----------------------------------------------------------------------------
+
+/*!\brief Returns true if the expression passed to this macro can be evaluated at compile time, false otherwise.
+ * \ingroup type_traits
+ * \returns true or false.
+ */
+#define SEQAN3_IS_CONSTEXPR(...) std::integral_constant<bool, __builtin_constant_p((__VA_ARGS__, 0))>::value
 
 namespace seqan3
 {
@@ -124,7 +134,7 @@ template <typename t, typename ...dependent_ts>
 using deferred_type_t = typename deferred_type<t, dependent_ts...>::type;
 
 // ----------------------------------------------------------------------------
-// remove_cvref_t
+// ignore_t
 // ----------------------------------------------------------------------------
 
 //!\brief Return the type of std::ignore with `const`, `volatile` and references removed (type trait).

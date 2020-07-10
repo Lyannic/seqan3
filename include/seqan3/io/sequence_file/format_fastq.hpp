@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -29,7 +29,6 @@
 #include <seqan3/io/sequence_file/output_format_concept.hpp>
 #include <seqan3/io/sequence_file/output_options.hpp>
 #include <seqan3/io/stream/iterator.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/detail/misc.hpp>
 #include <seqan3/range/views/char_to.hpp>
 #include <seqan3/range/views/istreambuf.hpp>
@@ -57,8 +56,8 @@ namespace seqan3
  *
  * ### fields_specialisation
  *
- * The FastQ format provides the fields seqan3::field::SEQ, seqan3::field::ID and seqan3::field::QUAL; or alternatively
- * provides seqan3::field::SEQ_QUAL as a single field of sequence and quality. All three fields (or ID + SEQ_QUAL) are
+ * The FastQ format provides the fields seqan3::field::seq, seqan3::field::id and seqan3::field::qual; or alternatively
+ * provides seqan3::field::seq_qual as a single field of sequence and quality. All three fields (or ID + SEQ_QUAL) are
  * required when writing and the sequence and qualities are required to be of the same length.
  *
  * ### Encodings
@@ -131,14 +130,14 @@ protected:
             if (options.truncate_ids)
             {
                 std::ranges::copy(stream_view | views::take_until_or_throw(is_cntrl || is_blank)
-                                              | views::char_to<value_type_t<id_type>>,
+                                              | views::char_to<std::ranges::range_value_t<id_type>>,
                                   std::ranges::back_inserter(id));
                 detail::consume(stream_view | views::take_line_or_throw);
             }
             else
             {
                 std::ranges::copy(stream_view | views::take_line_or_throw
-                                              | views::char_to<value_type_t<id_type>>,
+                                              | views::char_to<std::ranges::range_value_t<id_type>>,
                                   std::ranges::back_inserter(id));
             }
         }
@@ -158,13 +157,13 @@ protected:
                                         if (!is_legal_alph(c))
                                         {
                                             throw parse_error{std::string{"Encountered an unexpected letter: "} +
-                                                                is_legal_alph.msg.str() +
+                                                                is_legal_alph.msg +
                                                                 " evaluated to false on " +
                                                                 detail::make_printable(c)};
                                         }
                                         return c;
                                     })
-                                        | views::char_to<value_type_t<seq_type>>,         // convert to actual target alphabet
+                                        | views::char_to<std::ranges::range_value_t<seq_type>>,         // convert to actual target alphabet
                               std::ranges::back_inserter(sequence));
             sequence_size_after = size(sequence);
         }
@@ -194,12 +193,12 @@ protected:
         {
             // seq_qual field implies that they are the same variable
             assert(std::addressof(sequence) == std::addressof(qualities));
-            std::ranges::copy(qview | views::char_to<typename value_type_t<qual_type>::quality_alphabet_type>,
+            std::ranges::copy(qview | views::char_to<typename std::ranges::range_value_t<qual_type>::quality_alphabet_type>,
                               begin(qualities) + sequence_size_before);
         }
         else if constexpr (!detail::decays_to_ignore_v<qual_type>)
         {
-            std::ranges::copy(qview | views::char_to<value_type_t<qual_type>>,
+            std::ranges::copy(qview | views::char_to<std::ranges::range_value_t<qual_type>>,
                               std::ranges::back_inserter(qualities));
         }
         else
@@ -219,7 +218,7 @@ protected:
                                id_type                        && id,
                                qual_type                      && qualities)
     {
-        seqan3::ostreambuf_iterator stream_it{stream};
+        seqan3::detail::fast_ostreambuf_iterator stream_it{*stream.rdbuf()};
 
         // ID
         if constexpr (detail::decays_to_ignore_v<id_type>)
@@ -228,13 +227,12 @@ protected:
         }
         else
         {
-            if (empty(id)) //[[unlikely]]
+            if (std::ranges::empty(id)) //[[unlikely]]
                 throw std::runtime_error{"The ID field may not be empty when writing FASTQ files."};
 
             stream_it = '@';
-            std::ranges::copy(id, stream_it);
-
-            detail::write_eol(stream_it, options.add_carriage_return);
+            stream_it.write_range(id);
+            stream_it.write_end_of_line(options.add_carriage_return);
         }
 
         // Sequence
@@ -244,12 +242,11 @@ protected:
         }
         else
         {
-            if (empty(sequence)) //[[unlikely]]
+            if (std::ranges::empty(sequence)) //[[unlikely]]
                 throw std::runtime_error{"The SEQ field may not be empty when writing FASTQ files."};
 
-            std::ranges::copy(sequence | views::to_char, stream_it);
-
-            detail::write_eol(stream_it, options.add_carriage_return);
+            stream_it.write_range(sequence | views::to_char);
+            stream_it.write_end_of_line(options.add_carriage_return);
         }
 
         // 2nd ID-line
@@ -258,9 +255,9 @@ protected:
             stream_it = '+';
 
             if (options.fastq_double_id)
-                std::ranges::copy(id, stream_it);
+                stream_it.write_range(id);
 
-            detail::write_eol(stream_it, options.add_carriage_return);
+            stream_it.write_end_of_line(options.add_carriage_return);
         }
 
         // Quality line
@@ -270,17 +267,16 @@ protected:
         }
         else
         {
-            if (empty(qualities)) //[[unlikely]]
+            if (std::ranges::empty(qualities)) //[[unlikely]]
                 throw std::runtime_error{"The SEQ field may not be empty when writing FASTQ files."};
 
             if constexpr (std::ranges::sized_range<seq_type> && std::ranges::sized_range<qual_type>)
             {
-                assert(size(sequence) == size(qualities));
+                assert(std::ranges::size(sequence) == std::ranges::size(qualities));
             }
 
-            std::ranges::copy(qualities | views::to_char, stream_it);
-
-            detail::write_eol(stream_it, options.add_carriage_return);
+            stream_it.write_range(qualities | views::to_char);
+            stream_it.write_end_of_line(options.add_carriage_return);
         }
     }
 };

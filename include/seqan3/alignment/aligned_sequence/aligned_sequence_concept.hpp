@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -19,10 +19,9 @@
 #include <range/v3/algorithm/for_each.hpp>
 
 #include <seqan3/alignment/exception.hpp>
-#include <seqan3/alphabet/gap/all.hpp>
+#include <seqan3/alphabet/gap/gapped.hpp>
 #include <seqan3/core/concept/tuple.hpp>
 #include <seqan3/core/detail/debug_stream_type.hpp>
-#include <seqan3/core/type_traits/all.hpp>
 #include <seqan3/range/container/concept.hpp>
 #include <seqan3/range/views/slice.hpp>
 #include <seqan3/range/views/to_char.hpp>
@@ -113,56 +112,71 @@ namespace seqan3
  * \relates seqan3::aligned_sequence
  * \{
  */
-/*!\fn      inline aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq, typename aligned_seq_t::const_iterator pos_it)
+/*!\fn      inline std::ranges::iterator_t<aligned_seq_t> insert_gap(aligned_seq_t & aligned_seq,
+ *          typename aligned_seq_t::const_iterator pos_it)
  * \brief   Insert a seqan3::gap into an aligned sequence.
  *
  * \tparam        aligned_seq_t   Type of the range to modify; must model seqan3::aligned_sequence.
  * \param[in,out] aligned_seq     The aligned sequence to modify.
  * \param[in]     pos_it          The iterator pointing to the position where to insert a gap.
+ * \returns       An iterator pointing to the inserted gap.
  *
  * \details
+ * \note      This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
+ *
  * \attention This is a concept requirement, not an actual function (however types
  *            modelling this concept will provide an implementation).
  */
-/*!\fn      inline aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq, typename aligned_seq_t::const_iterator
- *          pos_it, typename aligned_seq_t::size_type size)
+/*!\fn      inline std::ranges::iterator_t<aligned_seq_t> insert_gap(aligned_seq_t & aligned_seq,
+ *          typename aligned_seq_t::const_iterator pos_it, typename aligned_seq_t::size_type size)
  * \brief   Insert multiple seqan3::gap into an aligned sequence.
  *
  * \tparam        aligned_seq_t   Type of the range to modify; must model seqan3::aligned_sequence.
  * \param[in,out] aligned_seq     The aligned sequence to modify.
  * \param[in]     pos_it          The iterator pointing to the position where to insert a gaps.
  * \param[in]     size            The number of gap symbols to insert (will result in a gap of length `size`).
+ * \returns       An iterator pointing to the first inserted gap or `pos_it` if `size == 0`.
  *
  * \details
+ * \note      This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
+ *
  * \attention This is a concept requirement, not an actual function (however types
  *            modelling this concept will provide an implementation).
  */
-/*!\fn      inline aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq, typename aligned_seq_t::const_iterator
- *          pos_it)
+/*!\fn      inline std::ranges::iterator_t<aligned_seq_t> erase_gap(aligned_seq_t & aligned_seq,
+ *          typename aligned_seq_t::const_iterator pos_it)
  * \brief   Erase a seqan3::gap from an aligned sequence.
  *
  * \tparam        aligned_seq_t   Type of the range to modify; must model seqan3::aligned_sequence.
  * \param[in,out] aligned_seq     The aligned sequence to modify.
  * \param[in]     pos_it          The iterator pointing to the position where to erase a gap.
+ * \returns       An iterator following the removed element. If the iterator `pos_it` refers to the last element, the
+ *                std::ranges::end() iterator is returned.
  *
  * \throws seqan3::gap_erase_failure if there is no seqan3::gap at \p pos_it.
  *
  * \details
+ * \note      This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
+ *
  * \attention This is a concept requirement, not an actual function (however types
  *            modelling this concept will provide an implementation).
  */
-/*!\fn      inline aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq, typename aligned_seq_t::const_iterator
- *          first, typename aligned_seq_t::const_iterator last)
+/*!\fn      inline std::ranges::iterator_t<aligned_seq_t> erase_gap(aligned_seq_t & aligned_seq,
+ *          typename aligned_seq_t::const_iterator first, typename aligned_seq_t::const_iterator last)
  * \brief   Erase multiple seqan3::gap from an aligned sequence.
  *
  * \tparam        aligned_seq_t   Type of the range to modify; must model seqan3::aligned_sequence.
  * \param[in,out] aligned_seq     The aligned sequence to modify.
  * \param[in]     first           The iterator pointing to the position where to start erasing gaps.
  * \param[in]     last            The iterator pointing to the position where to stop erasing gaps.
+ * \returns       An iterator following the last removed element. If the iterator `last` refers to the last element, the
+ *                std::ranges::end() iterator is returned.
  *
  * \throws seqan3::gap_erase_failure if one of the characters in [\p first, \p last) no seqan3::gap.
  *
  * \details
+ * \note      This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
+ *
  * \attention This is a concept requirement, not an actual function (however types
  *            modelling this concept will provide an implementation).
  */
@@ -189,8 +203,8 @@ namespace seqan3
 template <typename t>
 SEQAN3_CONCEPT aligned_sequence =
     std::ranges::forward_range<t> &&
-    alphabet<reference_t<t>> &&
-    weakly_assignable_from<reference_t<t>, gap const &> &&
+    alphabet<std::ranges::range_reference_t<t>> &&
+    weakly_assignable_from<std::ranges::range_reference_t<t>, gap const &> &&
     requires { typename detail::unaligned_seq_t<t>; } &&
     requires (t v, detail::unaligned_seq_t<t> unaligned)
     {
@@ -217,20 +231,23 @@ SEQAN3_CONCEPT aligned_sequence =
  *                                The value type must be a seqan3::gapped alphabet.
  * \param[in,out] aligned_seq     The aligned container to modify.
  * \param[in]     pos_it          The iterator pointing to the position where to insert a gap.
+ * \returns       An iterator pointing to the inserted gap.
  *
  * \details
  *
  * This function delegates to the member function `insert(iterator, value)` of
  * the container.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <sequence_container aligned_seq_t>
 //!\cond
-    requires detail::is_gapped_alphabet<value_type_t<aligned_seq_t>>
+    requires detail::is_gapped_alphabet<std::iter_value_t<aligned_seq_t>>
 //!\endcond
 inline typename aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq,
                                                    typename aligned_seq_t::const_iterator pos_it)
 {
-    return aligned_seq.insert(pos_it, value_type_t<aligned_seq_t>{gap{}});
+    return aligned_seq.insert(pos_it, std::iter_value_t<aligned_seq_t>{gap{}});
 }
 
 /*!\brief An implementation of seqan3::aligned_sequence::insert_gap for sequence containers.
@@ -240,21 +257,24 @@ inline typename aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq,
  * \param[in,out] aligned_seq     The aligned container to modify.
  * \param[in]     pos_it          The iterator pointing to the position where to insert gaps.
  * \param[in]     size            The number of gap symbols to insert (will result in a gap of length `size`).
+ * \returns       An iterator pointing to the first inserted gap or `pos_it` if `size == 0`.
  *
  * \details
  *
  * This function delegates to the member function `insert(iterator, `size`, `value`)`
  * of the container.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <sequence_container aligned_seq_t>
 //!\cond
-    requires detail::is_gapped_alphabet<value_type_t<aligned_seq_t>>
+    requires detail::is_gapped_alphabet<std::iter_value_t<aligned_seq_t>>
 //!\endcond
 inline typename aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq,
                                                    typename aligned_seq_t::const_iterator pos_it,
                                                    typename aligned_seq_t::size_type size)
 {
-    return aligned_seq.insert(pos_it, size, value_type_t<aligned_seq_t>{gap{}});
+    return aligned_seq.insert(pos_it, size, std::iter_value_t<aligned_seq_t>{gap{}});
 }
 
 /*!\brief An implementation of seqan3::aligned_sequence::erase_gap for sequence containers.
@@ -263,6 +283,8 @@ inline typename aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq,
  *                                The value type must be a seqan3::gapped alphabet.
  * \param[in,out] aligned_seq     The aligned container to modify.
  * \param[in]     pos_it          The iterator pointing to the position where to erase a gap.
+ * \returns       An iterator following the removed element. If the iterator `pos_it` refers to the last element, the
+ *                std::ranges::end() iterator is returned.
  *
  * \throws seqan3::gap_erase_failure if there is no seqan3::gap at \p pos_it.
  *
@@ -271,10 +293,12 @@ inline typename aligned_seq_t::iterator insert_gap(aligned_seq_t & aligned_seq,
  * This function delegates to the member function `erase(iterator)` of the
  * container. Before delegating, the function checks if the position pointed to
  * by \p pos_it is an actual seqan3::gap and throws an exception if not.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <sequence_container aligned_seq_t>
 //!\cond
-    requires detail::is_gapped_alphabet<value_type_t<aligned_seq_t>>
+    requires detail::is_gapped_alphabet<std::iter_value_t<aligned_seq_t>>
 //!\endcond
 inline typename aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq,
                                                   typename aligned_seq_t::const_iterator pos_it)
@@ -292,6 +316,8 @@ inline typename aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq,
  * \param[in,out] aligned_seq     The aligned container to modify.
  * \param[in]     first           The iterator pointing to the position where to start erasing gaps.
  * \param[in]     last            The iterator pointing to the position where to stop erasing gaps.
+ * \returns       An iterator following the last removed element. If the iterator `last` refers to the last element, the
+ *                std::ranges::end() iterator is returned.
  *
  * \throws seqan3::gap_erase_failure if one of the characters in [\p first, \p last) no seqan3::gap.
  *
@@ -300,10 +326,12 @@ inline typename aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq,
  * This function delegates to the member function `erase(iterator, iterator)` of
  * the container. Before delegating, the function checks if the range
  * [\p first, \p last) contains only seqan3::gap symbols.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <sequence_container aligned_seq_t>
 //!\cond
-    requires detail::is_gapped_alphabet<value_type_t<aligned_seq_t>>
+    requires detail::is_gapped_alphabet<std::iter_value_t<aligned_seq_t>>
 //!\endcond
 inline typename aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq,
                                                   typename aligned_seq_t::const_iterator first,
@@ -340,8 +368,9 @@ inline typename aligned_seq_t::iterator erase_gap(aligned_seq_t & aligned_seq,
  */
 template <sequence_container aligned_seq_t, std::ranges::forward_range unaligned_sequence_type>
 //!\cond
-    requires detail::is_gapped_alphabet<value_type_t<aligned_seq_t>> &&
-             weakly_assignable_from<reference_t<aligned_seq_t>, reference_t<unaligned_sequence_type>>
+    requires detail::is_gapped_alphabet<std::iter_value_t<aligned_seq_t>> &&
+             weakly_assignable_from<std::ranges::range_reference_t<aligned_seq_t>,
+                                    std::ranges::range_reference_t<unaligned_sequence_type>>
 //!\endcond
 inline void assign_unaligned(aligned_seq_t & aligned_seq, unaligned_sequence_type && unaligned_seq)
 {
@@ -361,14 +390,17 @@ inline void assign_unaligned(aligned_seq_t & aligned_seq, unaligned_sequence_typ
 /*!\brief An implementation of seqan3::aligned_sequence::insert_gap for ranges with the corresponding
  *        member function insert_gap(it, size).
  * \ingroup aligned_sequence
- * \tparam range_type   Type of the range to modify; must have an insert_gap(it, size) member function.
- * \param[in,out] rng   The range to modify.
- * \param[in]     it    The iterator pointing to the position where to start inserting gaps.
- * \param[in]     size  The number of gaps to insert as an optional argument, default is 1.
+ * \tparam range_type    Type of the range to modify; must have an insert_gap(it, size) member function.
+ * \param[in,out] rng    The range to modify.
+ * \param[in]     pos_it The iterator pointing to the position where to start inserting gaps.
+ * \param[in]     size   The number of gaps to insert as an optional argument, default is 1.
+ * \returns       An iterator pointing to the first inserted gap or `pos_it` if `size == 0`.
  *
  * \details
  *
  * This function delegates to the member function `insert(iterator, size)` of the range.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <typename range_type>
 //!\cond
@@ -379,10 +411,10 @@ template <typename range_type>
         }
 //!\endcond
 std::ranges::iterator_t<range_type> insert_gap(range_type & rng,
-                                               std::ranges::iterator_t<range_type> const it,
+                                               std::ranges::iterator_t<range_type> const pos_it,
                                                typename range_type::size_type const size = 1)
 {
-    return rng.insert_gap(it, size);
+    return rng.insert_gap(pos_it, size);
 }
 
 /*!\brief An implementation of seqan3::aligned_sequence::erase_gap for ranges with the corresponding
@@ -390,21 +422,25 @@ std::ranges::iterator_t<range_type> insert_gap(range_type & rng,
  * \ingroup aligned_sequence
  * \tparam range_type   Type of the range to modify; must have an erase_gap(it) member function.
  * \param[in,out] rng   The range to modify.
- * \param[in] it        The iterator pointing to the position where to erase one gap.
+ * \param[in] pos_it    The iterator pointing to the position where to erase one gap.
+ * \returns An iterator following the removed element. If the iterator `pos_it` refers to the last element, the
+ *          std::ranges::end() iterator is returned.
  *
  * \details
  *
  * This function delegates to the member function `erase(it)` of
  * the range.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <typename range_type>
 //!\cond
     requires requires (range_type v) { v.erase_gap(std::ranges::iterator_t<range_type>{}); }
 //!\endcond
 std::ranges::iterator_t<range_type> erase_gap(range_type & rng,
-                                              std::ranges::iterator_t<range_type> const it)
+                                              std::ranges::iterator_t<range_type> const pos_it)
 {
-    return rng.erase_gap(it);
+    return rng.erase_gap(pos_it);
 }
 
 /*!\brief An implementation of seqan3::aligned_sequence::erase_gap for ranges with the corresponding
@@ -414,12 +450,16 @@ std::ranges::iterator_t<range_type> erase_gap(range_type & rng,
  * \param[in,out] rng   The range to modify.
  * \param[in] first     The iterator pointing to the position where to start erasing gaps.
  * \param[in] last      The iterator pointing to the position where to stop erasing gaps.
+ * \returns An iterator following the last removed element. If the iterator `last` refers to the last element, the
+ *          std::ranges::end() iterator is returned.
  *
  * \throws seqan3::gap_erase_failure if one of the characters in [\p first, \p last) is no seqan3::gap.
  *
  * \details
  *
  * This function delegates to the member function `erase(first, last)` of the range.
+ *
+ * \note This may cause reallocations and thus invalidates all iterators and references. Use the returned iterator.
  */
 template <typename range_type>
 //!\cond
@@ -512,14 +552,17 @@ inline bool constexpr all_satisfy_aligned_seq<type_list<elems...>> = (aligned_se
  * \param alignment The alignment that shall be formatted. All sequences must be equally long.
  * \return          The given stream to which the alignment representation is appended.
  */
-template <tuple_like tuple_t, typename char_t>
+template <typename tuple_t, typename char_t>
 //!\cond
-    requires detail::all_satisfy_aligned_seq<detail::tuple_type_list_t<tuple_t>>
+    requires !std::ranges::input_range<tuple_t> &&
+             !alphabet<tuple_t> && // exclude alphabet_tuple_base
+             tuple_like<remove_cvref_t<tuple_t>> &&
+             detail::all_satisfy_aligned_seq<detail::tuple_type_list_t<remove_cvref_t<tuple_t>>>
 //!\endcond
-inline debug_stream_type<char_t> & operator<<(debug_stream_type<char_t> & stream, tuple_t const & alignment)
+inline debug_stream_type<char_t> & operator<<(debug_stream_type<char_t> & stream, tuple_t && alignment)
 {
-    static_assert(std::tuple_size_v<tuple_t> >= 2, "An alignment requires at least two sequences.");
-    detail::stream_alignment(stream, alignment, std::make_index_sequence<std::tuple_size_v<tuple_t> - 1> {});
+    static_assert(std::tuple_size_v<remove_cvref_t<tuple_t>> >= 2, "An alignment requires at least two sequences.");
+    detail::stream_alignment(stream, alignment, std::make_index_sequence<std::tuple_size_v<remove_cvref_t<tuple_t>> - 1> {});
     return stream;
 }
 

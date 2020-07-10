@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -298,8 +298,8 @@ template <std::ranges::forward_range ref_seq_type, std::ranges::forward_range qu
                                                   uint32_t const query_end_pos = 0,
                                                   bool const extended_cigar = false)
 //!\cond
-    requires std::detail::weakly_equality_comparable_with<gap, reference_t<ref_seq_type>> &&
-             std::detail::weakly_equality_comparable_with<gap, reference_t<query_seq_type>>
+    requires std::detail::weakly_equality_comparable_with<gap, std::ranges::range_reference_t<ref_seq_type>> &&
+             std::detail::weakly_equality_comparable_with<gap, std::ranges::range_reference_t<query_seq_type>>
 //!\endcond
 {
     return get_cigar_string(std::tie(ref_seq, query_seq), query_start_pos, query_end_pos, extended_cigar);

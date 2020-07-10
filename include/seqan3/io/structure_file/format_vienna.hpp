@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -31,7 +31,6 @@
 #include <seqan3/io/structure_file/input_options.hpp>
 #include <seqan3/io/structure_file/output_format_concept.hpp>
 #include <seqan3/io/structure_file/output_options.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/detail/misc.hpp>
 #include <seqan3/range/views/char_to.hpp>
 #include <seqan3/range/views/istreambuf.hpp>
@@ -69,11 +68,11 @@ namespace seqan3
  *
  * ### fields_specialisation
  *
- * The Vienna format provides the fields seqan3::field::SEQ, seqan3::field::ID, seqan3::field::BPP (read only),
- * seqan3::field::STRUCTURE, seqan3::field::STRUCTURED_SEQ and seqan3::field::ENERGY.\n\n
- * If you select seqan3::field::STRUCTURED_SEQ you must not select seqan3::field::SEQ or seqan3::field::STRUCTURE.\n
- * Either the field seqan3::field::SEQ or the field seqan3::field::STRUCTURED_SEQ is required when writing.\n
- * The field seqan3::field::BPP is ignored when writing, but a structure string can be converted to bpp when reading.
+ * The Vienna format provides the fields seqan3::field::seq, seqan3::field::id, seqan3::field::bpp (read only),
+ * seqan3::field::structure, seqan3::field::structured_seq and seqan3::field::energy.\n\n
+ * If you select seqan3::field::structured_seq you must not select seqan3::field::seq or seqan3::field::structure.\n
+ * Either the field seqan3::field::seq or the field seqan3::field::structured_seq is required when writing.\n
+ * The field seqan3::field::bpp is ignored when writing, but a structure string can be converted to bpp when reading.
  *
  * ### Implementation notes
  *
@@ -140,7 +139,7 @@ protected:
                 {
                     std::ranges::copy(stream_view | std::views::drop_while(is_id || is_blank) // skip leading >
                                                   | views::take_until_or_throw(is_cntrl || is_blank)
-                                                  | views::char_to<value_type_t<id_type>>,
+                                                  | views::char_to<std::ranges::range_value_t<id_type>>,
                                       std::ranges::back_inserter(id));
                     detail::consume(stream_view | views::take_line_or_throw);
                 }
@@ -148,7 +147,7 @@ protected:
                 {
                     std::ranges::copy(stream_view | std::views::drop_while(is_id || is_blank) // skip leading >
                                                   | views::take_line_or_throw
-                                                  | views::char_to<value_type_t<id_type>>,
+                                                  | views::char_to<std::ranges::range_value_t<id_type>>,
                                       std::ranges::back_inserter(id));
                 }
             }
@@ -163,7 +162,7 @@ protected:
             if (!is_legal_seq(*begin(stream_view))) // if neither id nor seq found: throw
             {
                 throw parse_error{std::string{"Expected to be on beginning of ID or sequence, but "} +
-                                  is_id.msg.str() + " and " + is_legal_seq.msg.str() +
+                                  is_id.msg + " and " + is_legal_seq.msg +
                                   " evaluated to false on " + detail::make_printable(*begin(stream_view))};
             }
         }
@@ -179,13 +178,13 @@ protected:
                                                 if (!is_legal_seq(c))                    // enforce legal alphabet
                                                 {
                                                     throw parse_error{std::string{"Encountered an unexpected letter: "} +
-                                                                      is_legal_seq.msg.str() +
+                                                                      is_legal_seq.msg +
                                                                       " evaluated to false on " +
                                                                       detail::make_printable(c)};
                                                 }
                                               return c;
                                             })
-                                          | views::char_to<value_type_t<seq_type>>, // convert to actual target alphabet
+                                          | views::char_to<std::ranges::range_value_t<seq_type>>, // convert to actual target alphabet
                               std::ranges::back_inserter(seq));
         }
         else
@@ -200,7 +199,7 @@ protected:
             if constexpr (structured_seq_combined)
             {
                 assert(std::addressof(seq) == std::addressof(structure));
-                using alph_type = typename value_type_t<structure_type>::structure_alphabet_type;
+                using alph_type = typename std::ranges::range_value_t<structure_type>::structure_alphabet_type;
                 // We need the structure_length parameter to count the length of the structure while reading
                 // because we cannot infer it from the (already resized) structure_seq object.
                 auto res = std::ranges::copy(read_structure<alph_type>(stream_view), std::ranges::begin(structure));
@@ -211,7 +210,7 @@ protected:
             }
             else
             {
-                using alph_type = value_type_t<structure_type>;
+                using alph_type = std::ranges::range_value_t<structure_type>;
                 std::ranges::copy(read_structure<alph_type>(stream_view), std::ranges::back_inserter(structure));
                 structure_length = std::ranges::distance(structure);
 
@@ -286,7 +285,7 @@ protected:
         // WRITE ID (optional)
         if constexpr (!detail::decays_to_ignore_v<id_type>)
         {
-            if (!empty(id))
+            if (!std::ranges::empty(id))
             {
                 stream_it = '>';
                 stream_it = ' ';
@@ -298,7 +297,7 @@ protected:
         // WRITE SEQUENCE
         if constexpr (!detail::decays_to_ignore_v<seq_type>)
         {
-            if (empty(seq)) //[[unlikely]]
+            if (std::ranges::empty(seq)) //[[unlikely]]
                 throw std::runtime_error{"The SEQ field may not be empty when writing Vienna files."};
 
             std::ranges::copy(seq | views::to_char, stream_it);
@@ -313,7 +312,7 @@ protected:
         // WRITE STRUCTURE (optional)
         if constexpr (!detail::decays_to_ignore_v<structure_type>)
         {
-            if (!empty(structure))
+            if (!std::ranges::empty(structure))
                 std::ranges::copy(structure | views::to_char, stream_it);
 
             // WRITE ENERGY (optional)
@@ -370,7 +369,7 @@ private:
                                  {
                                      throw parse_error{
                                          std::string{"Encountered an unexpected letter: "} +
-                                         is_legal_structure.msg.str() +
+                                         is_legal_structure.msg +
                                          " evaluated to false on " + detail::make_printable(c)};
                                  }
                                  return c;

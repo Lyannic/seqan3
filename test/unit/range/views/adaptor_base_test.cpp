@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -10,9 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include <seqan3/core/type_traits/basic.hpp>
 #include <seqan3/range/views/detail.hpp>
-
-using namespace seqan3;
 
 // The general capabilities of adaptor_base and derivates are tested thoroughly by the different views
 // this file checks the correct memory behaviour in regard to storing the elements
@@ -41,18 +40,21 @@ struct copy_counter
 };
 
 struct adaptor_base_type_checker :
-    detail::adaptor_base<adaptor_base_type_checker,
-                         copy_counter, copy_counter const, copy_counter &, copy_counter const &>
+    seqan3::detail::adaptor_base<adaptor_base_type_checker,
+                                 copy_counter, copy_counter const, copy_counter &, copy_counter const &>
 {
-    using base_t = detail::adaptor_base<adaptor_base_type_checker,
-                                        copy_counter, copy_counter const, copy_counter &, copy_counter const &>;
+    using base_t = seqan3::detail::adaptor_base<adaptor_base_type_checker,
+                                                copy_counter, copy_counter const, copy_counter &, copy_counter const &>;
     using base_t::base_t;
 
     template <typename urng_t, typename one_t, typename two_t, typename three_t, typename four_t>
     static std::tuple<one_t, two_t, three_t, four_t>
     impl(urng_t &&, one_t && one, two_t && two, three_t && three, four_t && four)
     {
-        return { std::forward<one_t>(one), std::forward<two_t>(two), std::forward<three_t>(three), std::forward<four_t>(four)};
+        return { std::forward<one_t>(one),
+                 std::forward<two_t>(two),
+                 std::forward<three_t>(three),
+                 std::forward<four_t>(four) };
     }
 };
 
@@ -67,7 +69,7 @@ TEST(arg_ownership, lval_adaptor)
     auto f = vec | a;
 
     EXPECT_TRUE((std::same_as<decltype(f),
-                           std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
+                              std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
 
     // In general three operations happen:
     // 1. out of constructor, into storage tuple
@@ -101,7 +103,7 @@ TEST(arg_ownership, const_lval_adaptor)
     auto f = vec | a;
 
     EXPECT_TRUE((std::same_as<decltype(f),
-                           std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
+                              std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
 
     EXPECT_EQ(std::get<0>(f).copy_count, 1ul);
     EXPECT_EQ(std::get<0>(f).move_count, 2ul);
@@ -131,7 +133,7 @@ TEST(arg_ownership, rval_adaptor)
     auto f = vec | std::move(a);
 
     EXPECT_TRUE((std::same_as<decltype(f),
-                           std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
+                              std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
 
     EXPECT_EQ(std::get<0>(f).copy_count, 0ul); // moved out of storage, too, because temporary
     EXPECT_EQ(std::get<0>(f).move_count, 3ul);
@@ -161,7 +163,7 @@ TEST(arg_ownership, const_rval_adaptor)
     auto f = vec | std::move(a);
 
     EXPECT_TRUE((std::same_as<decltype(f),
-                           std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
+                              std::tuple<copy_counter, copy_counter const, copy_counter &, copy_counter const &>>));
 
     EXPECT_EQ(std::get<0>(f).copy_count, 1ul);
     EXPECT_EQ(std::get<0>(f).move_count, 2ul);
@@ -178,4 +180,16 @@ TEST(arg_ownership, const_rval_adaptor)
     EXPECT_EQ(std::get<3>(f).move_count, 0ul);
     EXPECT_EQ(c4.copy_count, 0ul);
     EXPECT_EQ(c4.move_count, 0ul);
+}
+
+template <typename t>
+struct dummy_view
+{};
+
+TEST(adaptor_combination, constexpr_combine)
+{
+    constexpr auto adaptor1 = seqan3::detail::adaptor_for_view_without_args<dummy_view>{};
+    constexpr auto adaptor2 = seqan3::detail::adaptor_for_view_without_args<dummy_view>{};
+
+    EXPECT_TRUE((SEQAN3_IS_CONSTEXPR(adaptor1 | adaptor2)));
 }

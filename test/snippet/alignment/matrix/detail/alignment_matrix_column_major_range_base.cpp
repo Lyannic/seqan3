@@ -4,15 +4,12 @@
 #include <seqan3/core/debug_stream.hpp>
 #include <seqan3/std/span>
 
-using namespace seqan3;
-using namespace seqan3::detail;
-
-class my_matrix : public alignment_matrix_column_major_range_base<my_matrix>
+class my_matrix : public seqan3::detail::alignment_matrix_column_major_range_base<my_matrix>
 {
 public:
 
     // Alias the base class
-    using base_t = alignment_matrix_column_major_range_base<my_matrix>;
+    using base_t = seqan3::detail::alignment_matrix_column_major_range_base<my_matrix>;
 
     friend base_t;
 
@@ -72,5 +69,5 @@ int main()
 
     // Print the matrix column by column
     for (auto col : matrix)
-        debug_stream << col << "\n";
+        seqan3::debug_stream << col << '\n';
 }

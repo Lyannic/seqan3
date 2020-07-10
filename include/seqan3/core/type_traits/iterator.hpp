@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -38,7 +38,7 @@ template <std::input_iterator it_t>
 struct value_type<it_t>
 {
     //!\brief Return the member type as return type.
-    using type = typename std::iterator_traits<std::remove_reference_t<it_t>>::value_type;
+    using type = std::iter_value_t<it_t>;
 };
 
 // see specialisation for ranges in core/type_traits/range.hpp
@@ -55,7 +55,7 @@ template <std::input_iterator it_t>
 struct reference<it_t>
 {
     //!\brief Return the member type as return type.
-    using type = typename std::iterator_traits<std::remove_reference_t<it_t>>::reference;
+    using type = std::iter_reference_t<it_t>;
 };
 
 // see specialisation for ranges in core/type_traits/range.hpp
@@ -72,7 +72,7 @@ template <std::input_iterator it_t>
 struct rvalue_reference<it_t>
 {
     //!\brief Return the member type as return type.
-    using type = decltype(std::ranges::iter_move(std::declval<it_t &>()));
+    using type = std::iter_rvalue_reference_t<it_t>;
 };
 
 // see specialisation for ranges in core/type_traits/range.hpp
@@ -95,7 +95,7 @@ template <std::weakly_incrementable it_t>
 struct difference_type<it_t>
 {
     //!\brief Return the member type as return type.
-    using type = typename std::iterator_traits<std::remove_reference_t<it_t>>::difference_type;
+    using type = std::iter_difference_t<it_t>;
 };
 
 // see specialisation for ranges in core/type_traits/range.hpp
@@ -112,7 +112,7 @@ template <std::weakly_incrementable it_t>
 struct size_type<it_t>
 {
     //!\brief Return the member type as return type.
-    using type = std::make_unsigned_t<difference_type_t<it_t>>;
+    using type = std::make_unsigned_t<std::iter_difference_t<it_t>>;
 };
 
 // see specialisation for ranges in core/type_traits/range.hpp
@@ -150,36 +150,36 @@ struct iterator_tag<it_t>
 };
 
 template <std::input_iterator it_t>
-    requires !requires { typename std::iterator_traits<it_t>::iterator_category; }
+    requires (!requires { typename std::iterator_traits<it_t>::iterator_category; })
 struct iterator_tag<it_t>
 {
     using type = std::input_iterator_tag;
 };
 
 template <typename it_t>
-    requires !std::input_iterator<it_t> && std::output_iterator<it_t, value_type_t<it_t>> &&
-             !requires { typename std::iterator_traits<it_t>::iterator_category; }
+    requires (!std::input_iterator<it_t>) && std::output_iterator<it_t, std::iter_value_t<it_t>> &&
+             (!requires { typename std::iterator_traits<it_t>::iterator_category; })
 struct iterator_tag<it_t>
 {
     using type = std::output_iterator_tag;
 };
 
 template <std::forward_iterator it_t>
-    requires !requires { typename std::iterator_traits<it_t>::iterator_category; }
+    requires (!requires { typename std::iterator_traits<it_t>::iterator_category; })
 struct iterator_tag<it_t>
 {
     using type = std::forward_iterator_tag;
 };
 
 template <std::bidirectional_iterator it_t>
-    requires !requires { typename std::iterator_traits<it_t>::iterator_category; }
+    requires (!requires { typename std::iterator_traits<it_t>::iterator_category; })
 struct iterator_tag<it_t>
 {
     using type = std::bidirectional_iterator_tag;
 };
 
 template <std::random_access_iterator it_t>
-    requires !requires { typename std::iterator_traits<it_t>::iterator_category; }
+    requires (!requires { typename std::iterator_traits<it_t>::iterator_category; })
 struct iterator_tag<it_t>
 {
     using type = std::random_access_iterator_tag;

@@ -165,12 +165,13 @@ But as soon as we introduce another overload, the compiler will pick the "best" 
 
 \include doc/tutorial/concepts/overloading2.cpp
 
-\assignment{Exercise: Static polymorphism with alphabets I}
+\assignment{Assignment 1: Static polymorphism with alphabets I}
 Write a small program, similar to the one above with the following "skeleton":
 ```cpp
 // which includes?
 
-using namespace seqan3;
+using seqan3::operator""_dna5;
+using seqan3::operator""_aa27;
 
 // Add one or more `void print` function template(s) here //
 
@@ -178,7 +179,7 @@ int main()
 {
     auto d = 'A'_dna5;
     auto a = 'L'_aa27;
-    auto g = gap{};
+    auto g = seqan3::gap{};
 
     print(d);
     print(a);
@@ -194,9 +195,8 @@ Try calling `print` with a different type, e.g. `int` to make sure that it does.
 \include doc/tutorial/concepts/overloading_solution1.cpp
 \endsolution
 
-\assignment{Exercise: Static polymorphism with alphabets II}
-Adapt your previous solution to handle nucleotides different from the rest. For nucleotides it should print,
-both, the value and its complement.
+\assignment{Assignment 2: Static polymorphism with alphabets II}
+Adapt your previous solution to handle nucleotides differently from the rest. For nucleotides, it should print both the value and its complement.
 \endassignment
 \solution
 \include doc/tutorial/concepts/overloading_solution2.cpp
@@ -281,7 +281,7 @@ static_assert(seqan3::validator<custom_validator>);
 To formally satisfy the requirements, your functions don't need the correct behaviour, yet.
 Only the signatures need to be fully specified.
 
-\assignment{Exercise: Custom validator I}
+\assignment{Assignment 3: Custom validator I}
 Implement enough of the above mentioned `struct custom_validator` for it to model seqan3::validator and pass
 the check. You can use an empty `main()`-function for now.
 \endassignment
@@ -302,8 +302,8 @@ It should print "Yeah!" for the arguments `-i 0`, `-i 4`, or `-i 144`; and/or `-
 
 It should fail for the arguments `-i 3`; and/or `-j 144` or `-j 3`.
 
-\assignment{Exercise: Custom validator II}
-Implement your validator fully, i.e. make it throw seqan3::parser_invalid_argument if the number provided is not a
+\assignment{Assignment 4: Custom validator II}
+Implement your validator fully, i.e. make it throw seqan3::validation_error if the number provided is not a
 square.
 Also give a nice description for the help page.
 
@@ -313,4 +313,3 @@ Also give a nice description for the help page.
 \endsolution
 
 You have now written your own type that is compatible with our constrained interfaces!
-

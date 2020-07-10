@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ public:
     //!\brief Enable conversion of semialphabet_any into other (semi-)alphabet of the same size
     template <semialphabet other_alph_t>
     //!\cond
-        requires (alphabet_size<other_alph_t> == size)
+        requires ((alphabet_size<other_alph_t> == size) && std::regular<other_alph_t>)
     //!\endcond
     explicit operator other_alph_t() const
     {

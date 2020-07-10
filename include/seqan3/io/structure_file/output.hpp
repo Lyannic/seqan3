@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -19,12 +19,6 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
-
-// remove the following after range-v3 is updated to 1.0
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-#include <seqan3/alphabet/structure/all.hpp>
 #include <seqan3/core/type_list/traits.hpp>
 #include <seqan3/core/concept/tuple.hpp>
 #include <seqan3/io/stream/concept.hpp>
@@ -55,7 +49,6 @@ namespace seqan3
  *                            can't be deduced.
  * \tparam valid_formats      A seqan3::type_list of the selectable formats (each must meet
  *                            seqan3::structure_file_output_format).
- * \tparam stream_char_type   The type of the underlying stream device(s); must model seqan3::builtin_character.
  * \details
  *
  * ### Introduction
@@ -68,16 +61,16 @@ namespace seqan3
  *
  * The structured sequence file abstraction supports writing ten different fields:
  *
- *   1. seqan3::field::SEQ (sequence)
- *   2. seqan3::field::ID (identifier)
- *   3. seqan3::field::BPP (annotated sequence)
- *   4. seqan3::field::STRUCTURE (secondary structure)
- *   5. seqan3::field::STRUCTURED_SEQ (sequence and structure in one range)
- *   6. seqan3::field::ENERGY (minimum free energy)
- *   7. seqan3::field::REACT (reactivity)
- *   8. seqan3::field::REACT_ERR (reactivity error)
- *   9. seqan3::field::COMMENT (free text)
- *   10. seqan3::field::OFFSET (index of first sequence character)
+ *   1. seqan3::field::seq (sequence)
+ *   2. seqan3::field::id (identifier)
+ *   3. seqan3::field::bpp (annotated sequence)
+ *   4. seqan3::field::structure (secondary structure)
+ *   5. seqan3::field::structured_seq (sequence and structure in one range)
+ *   6. seqan3::field::energy (minimum free energy)
+ *   7. seqan3::field::react (reactivity)
+ *   8. seqan3::field::react_err (reactivity error)
+ *   9. seqan3::field::comment (free text)
+ *   10. seqan3::field::offset (index of first sequence character)
  *
  * The member functions take any and either of these fields. If the field ID of an argument cannot be deduced, it
  * is assumed to correspond to the field ID of the respective template parameter.
@@ -112,11 +105,11 @@ namespace seqan3
  * The easiest way to write to a sequence file is to use the push_back() or emplace_back() member functions. These
  * work similarly to how they work on an std::vector. If you pass a tuple to push_back() or give arguments to
  * emplace_back() the seqan3::field ID of the i-th tuple-element/argument is assumed to be the i-th value of
- * selected_field_ids, i.e. by default the first is assumed to be seqan3::field::SEQ, the second seqan3::field::ID
- * and the third one seqan3::field::STRUCTURE. You may give less fields than are selected, if the actual format you are
+ * selected_field_ids, i.e. by default the first is assumed to be seqan3::field::seq, the second seqan3::field::id
+ * and the third one seqan3::field::structure. You may give less fields than are selected, if the actual format you are
  * writing to can cope with less
- * (e.g. for Vienna it is sufficient to write seqan3::field::SEQ, seqan3::field::ID and seqan3::field::STRUCTURE,
- * even if selected_field_ids also contains seqan3::field::ENERGY).
+ * (e.g. for Vienna it is sufficient to write seqan3::field::seq, seqan3::field::id and seqan3::field::structure,
+ * even if selected_field_ids also contains seqan3::field::energy).
  *
  * You may also use the output file's iterator for writing, however, this rarely provides an advantage.
  *
@@ -154,7 +147,7 @@ namespace seqan3
  * The record-based interface treats the file as a range of tuples (the records), but in certain situations
  * you might have the data as columns, i.e. a tuple-of-ranges, instead of range-of-tuples.
  *
- * You can use column-based writing in that case, it uses operator=() :
+ * You can use column-based writing in that case, it uses operator=() and seqan3::views::zip():
  *
  * \include test/snippet/io/structure_file/structure_file_output_col_based.cpp
  *
@@ -162,10 +155,8 @@ namespace seqan3
  *
  * Currently, the only implemented format is seqan3::format_vienna. More formats will follow soon.
  */
-
-template <detail::fields_specialisation selected_field_ids_ = fields<field::SEQ, field::ID, field::STRUCTURE>,
-          detail::type_list_of_structure_file_output_formats valid_formats_ = type_list<format_vienna>,
-          builtin_character stream_char_type_ = char>
+template <detail::fields_specialisation selected_field_ids_ = fields<field::seq, field::id, field::structure>,
+          detail::type_list_of_structure_file_output_formats valid_formats_ = type_list<format_vienna>>
 class structure_file_output
 {
 public:
@@ -177,21 +168,21 @@ public:
     using selected_field_ids    = selected_field_ids_;
     //!\brief A seqan3::type_list with the possible formats.
     using valid_formats         = valid_formats_;
-    //!\brief Character type of the stream(s), usually `char`.
-    using stream_char_type      = stream_char_type_;
+    //!\brief Character type of the stream(s).
+    using stream_char_type      = char;
     //!\}
 
     //!\brief The subset of seqan3::field IDs that are valid for this file.
-    using field_ids = fields<field::SEQ,
-                             field::ID,
-                             field::BPP,
-                             field::STRUCTURE,
-                             field::STRUCTURED_SEQ,
-                             field::ENERGY,
-                             field::REACT,
-                             field::REACT_ERR,
-                             field::COMMENT,
-                             field::OFFSET>;
+    using field_ids = fields<field::seq,
+                             field::id,
+                             field::bpp,
+                             field::structure,
+                             field::structured_seq,
+                             field::energy,
+                             field::react,
+                             field::react_err,
+                             field::comment,
+                             field::offset>;
 
     static_assert([] () constexpr
                   {
@@ -205,10 +196,10 @@ public:
 
     static_assert([] () constexpr
                   {
-                      return !(selected_field_ids::contains(field::STRUCTURED_SEQ) &&
-                               (selected_field_ids::contains(field::SEQ) ||
-                               (selected_field_ids::contains(field::STRUCTURE))));
-                  }(), "You may not select field::STRUCTURED_SEQ and either of field::SEQ and field::STRUCTURE "
+                      return !(selected_field_ids::contains(field::structured_seq) &&
+                               (selected_field_ids::contains(field::seq) ||
+                               (selected_field_ids::contains(field::structure))));
+                  }(), "You may not select field::structured_seq and either of field::seq and field::structure "
                        "at the same time.");
 
     /*!\name Range associated types
@@ -267,8 +258,12 @@ public:
      */
     structure_file_output(std::filesystem::path filename,
                           selected_field_ids const & SEQAN3_DOXYGEN_ONLY(fields_tag) = selected_field_ids{}) :
-        primary_stream{new std::ofstream{filename, std::ios_base::out | std::ios::binary}, stream_deleter_default}
+        primary_stream{new std::ofstream{}, stream_deleter_default}
     {
+        primary_stream->rdbuf()->pubsetbuf(stream_buffer.data(), stream_buffer.size());
+        static_cast<std::basic_ofstream<char> *>(primary_stream.get())->open(filename,
+                                                                             std::ios_base::out | std::ios::binary);
+
         if (!primary_stream->good())
             throw file_open_error{"Could not open file " + filename.string() + " for writing."};
 
@@ -296,6 +291,9 @@ public:
      * See the section on \link io_compression compression and decompression \endlink for more information.
      */
     template <output_stream stream_t, structure_file_output_format file_format>
+    //!\cond
+        requires std::same_as<typename std::remove_reference_t<stream_t>::char_type, char>
+    //!\endcond
     structure_file_output(stream_t & stream,
                           file_format const & SEQAN3_DOXYGEN_ONLY(format_tag),
                           selected_field_ids const & SEQAN3_DOXYGEN_ONLY(fields_tag) = selected_field_ids{}) :
@@ -309,6 +307,9 @@ public:
 
     //!\overload
     template <output_stream stream_t, structure_file_output_format file_format>
+    //!\cond
+        requires std::same_as<typename std::remove_reference_t<stream_t>::char_type, char>
+    //!\endcond
     structure_file_output(stream_t && stream,
                           file_format const & SEQAN3_DOXYGEN_ONLY(format_tag),
                           selected_field_ids const & SEQAN3_DOXYGEN_ONLY(fields_tag) = selected_field_ids{}) :
@@ -386,19 +387,21 @@ public:
      */
     template <typename record_t>
     void push_back(record_t && r)
+    //!\cond
         requires tuple_like<record_t> &&
                  requires { requires detail::is_type_specialisation_of_v<remove_cvref_t<record_t>, record>; }
+    //!\endcond
     {
-        write_record(detail::get_or_ignore<field::SEQ>(r),
-                     detail::get_or_ignore<field::ID>(r),
-                     detail::get_or_ignore<field::BPP>(r),
-                     detail::get_or_ignore<field::STRUCTURE>(r),
-                     detail::get_or_ignore<field::STRUCTURED_SEQ>(r),
-                     detail::get_or_ignore<field::ENERGY>(r),
-                     detail::get_or_ignore<field::REACT>(r),
-                     detail::get_or_ignore<field::REACT_ERR>(r),
-                     detail::get_or_ignore<field::COMMENT>(r),
-                     detail::get_or_ignore<field::OFFSET>(r));
+        write_record(detail::get_or_ignore<field::seq>(r),
+                     detail::get_or_ignore<field::id>(r),
+                     detail::get_or_ignore<field::bpp>(r),
+                     detail::get_or_ignore<field::structure>(r),
+                     detail::get_or_ignore<field::structured_seq>(r),
+                     detail::get_or_ignore<field::energy>(r),
+                     detail::get_or_ignore<field::react>(r),
+                     detail::get_or_ignore<field::react_err>(r),
+                     detail::get_or_ignore<field::comment>(r),
+                     detail::get_or_ignore<field::offset>(r));
     }
 
     /*!\brief           Write a record in form of a std::tuple to the file.
@@ -424,19 +427,21 @@ public:
      */
     template <typename tuple_t>
     void push_back(tuple_t && t)
+    //!\cond
         requires tuple_like<tuple_t>
+    //!\endcond
     {
         // index_of might return npos, but this will be handled well by get_or_ignore (and just return ignore)
-        write_record(detail::get_or_ignore<selected_field_ids::index_of(field::SEQ)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::ID)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::BPP)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::STRUCTURE)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::STRUCTURED_SEQ)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::ENERGY)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::REACT)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::REACT_ERR)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::COMMENT)>(t),
-                     detail::get_or_ignore<selected_field_ids::index_of(field::OFFSET)>(t));
+        write_record(detail::get_or_ignore<selected_field_ids::index_of(field::seq)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::id)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::bpp)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::structure)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::structured_seq)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::energy)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::react)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::react_err)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::comment)>(t),
+                     detail::get_or_ignore<selected_field_ids::index_of(field::offset)>(t));
     }
 
     /*!\brief            Write a record to the file by passing individual fields.
@@ -491,7 +496,9 @@ public:
      */
     template <std::ranges::input_range rng_t>
     structure_file_output & operator=(rng_t && range)
-        requires tuple_like<reference_t<rng_t>>
+    //!\cond
+        requires tuple_like<std::ranges::range_reference_t<rng_t>>
+    //!\endcond
     {
         for (auto && record : range)
             push_back(std::forward<decltype(record)>(record));
@@ -527,7 +534,9 @@ public:
      */
     template <std::ranges::input_range rng_t>
     friend structure_file_output & operator|(rng_t && range, structure_file_output & f)
-        requires tuple_like<reference_t<rng_t>>
+    //!\cond
+        requires tuple_like<std::ranges::range_reference_t<rng_t>>
+    //!\endcond
     {
         f = range;
         return f;
@@ -536,93 +545,12 @@ public:
     //!\overload
     template <std::ranges::input_range rng_t>
     friend structure_file_output operator|(rng_t && range, structure_file_output && f)
-        requires tuple_like<reference_t<rng_t>>
+    //!\cond
+        requires tuple_like<std::ranges::range_reference_t<rng_t>>
+    //!\endcond
     {
         f = range;
         return std::move(f);
-    }
-    //!\}
-
-    /*!\name Tuple interface
-     * \brief Provides functions for field-based ("column"-based) writing.
-     * \{
-     */
-    /*!\brief            Write columns (wrapped in a seqan3::record) to the file.
-     * \tparam typelist  Template argument to seqan3::record, each type must be a column (range-of-range).
-     * \tparam field_ids Template argument to seqan3::record, the IDs corresponding to the columns.
-     * \param[in] r      The record of columns.
-     *
-     * \details
-     *
-     * \attention This is not part of the row-based file writing; the seqan3::record does not represent a file record,
-     * it is a tuple of the columns (with field information).
-     *
-     * ### Complexity
-     *
-     * Linear in the size of the columns.
-     *
-     * ### Exceptions
-     *
-     * Basic exception safety.
-     *
-     * ### Example
-     *
-     * \include test/snippet/io/structure_file/structure_file_output_col_based.cpp
-     */
-    template <typename typelist, typename field_ids>
-    structure_file_output & operator=(record<typelist, field_ids> const & r)
-    {
-        write_columns(detail::range_wrap_ignore(detail::get_or_ignore<field::SEQ>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::ID>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::BPP>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::STRUCTURE>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::STRUCTURED_SEQ>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::ENERGY>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::REACT>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::REACT_ERR>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::COMMENT>(r)),
-                      detail::range_wrap_ignore(detail::get_or_ignore<field::OFFSET>(r)));
-        return *this;
-    }
-
-    /*!\brief            Write columns (wrapped in a std::tuple) to the file.
-     * \tparam arg_types The column types, each type must be a range-of-range.
-     * \param[in] t      The tuple of columns.
-     *
-     * \details
-     *
-     * The columns are assumed to correspond to the field IDs given in selected_field_ids, however passing less
-     * is accepted if the format does not require all of them.
-     *
-     * ### Complexity
-     *
-     * Linear in the size of the columns.
-     *
-     * ### Exceptions
-     *
-     * Basic exception safety.
-     *
-     * ### Example
-     *
-     * \include test/snippet/io/structure_file/structure_file_output_col_based.cpp
-     *
-     */
-    template <typename ...arg_types>
-    structure_file_output & operator=(std::tuple<arg_types...> const & t)
-    {
-        // index_of might return npos, but this will be handled well by get_or_ignore (and just return ignore)
-        write_columns(
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::SEQ)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::ID)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::BPP)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::STRUCTURE)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::STRUCTURED_SEQ)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::ENERGY)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::REACT)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::REACT_ERR)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::COMMENT)>(t)),
-           detail::range_wrap_ignore(detail::get_or_ignore<selected_field_ids::index_of(field::OFFSET)>(t)));
-        return *this;
     }
     //!\}
 
@@ -639,6 +567,8 @@ public:
     //!\endcond
 protected:
     //!\privatesection
+    //!\brief A larger (compared to stl default) stream buffer to use when reading from a file.
+    std::vector<char> stream_buffer{std::vector<char>(1'000'000)};
 
     /*!\name Stream / file access
      * \{
@@ -686,7 +616,7 @@ protected:
     {
         static_assert(detail::decays_to_ignore_v<structured_seq_type> ||
                       (detail::decays_to_ignore_v<seq_type> && detail::decays_to_ignore_v<structure_type>),
-                      "You may not select field::STRUCTURED_SEQ and either of field::SEQ and field::STRUCTURE "
+                      "You may not select field::structured_seq and either of field::seq and field::structure "
                       "at the same time.");
 
         assert(!format.valueless_by_exception());
@@ -723,88 +653,6 @@ protected:
         }, format);
     }
 
-    //!\brief Write columns to file format, only tag-dispatch once.
-    template <std::ranges::input_range seq_type,
-              std::ranges::input_range id_type,
-              std::ranges::input_range bpp_type,
-              std::ranges::input_range structure_type,
-              std::ranges::input_range structured_seq_type,
-              std::ranges::input_range energy_type,
-              std::ranges::input_range react_type,
-              std::ranges::input_range comment_type,
-              std::ranges::input_range offset_type>
-    void write_columns(seq_type && seq,
-                       id_type && id,
-                       bpp_type && bpp,
-                       structure_type && structure,
-                       structured_seq_type && structured_seq,
-                       energy_type && energy,
-                       react_type && react,
-                       react_type && react_error,
-                       comment_type && comment,
-                       offset_type && offset)
-    {
-        static_assert(!(detail::decays_to_ignore_v<reference_t<seq_type>> &&
-                        detail::decays_to_ignore_v<reference_t<id_type>> &&
-                        detail::decays_to_ignore_v<reference_t<bpp_type>> &&
-                        detail::decays_to_ignore_v<reference_t<structure_type>> &&
-                        detail::decays_to_ignore_v<reference_t<structured_seq_type>> &&
-                        detail::decays_to_ignore_v<reference_t<energy_type>> &&
-                        detail::decays_to_ignore_v<reference_t<react_type>> &&
-                        detail::decays_to_ignore_v<reference_t<comment_type>> &&
-                        detail::decays_to_ignore_v<reference_t<offset_type>>),
-                      "At least one of the columns must not be set to std::ignore.");
-
-        static_assert(detail::decays_to_ignore_v<reference_t<structured_seq_type>> ||
-                      (detail::decays_to_ignore_v<reference_t<seq_type>> &&
-                       detail::decays_to_ignore_v<reference_t<structure_type>>),
-                      "You may not select field::STRUCTURED_SEQ and either of field::SEQ and field::STRUCTURE "
-                      "at the same time.");
-
-        assert(!format.valueless_by_exception());
-        std::visit([&] (auto & f)
-        {
-            if constexpr (!detail::decays_to_ignore_v<reference_t<structured_seq_type>>)
-            {
-                auto zipped = views::zip(structured_seq, id, bpp, energy, react, react_error, comment, offset);
-
-                for (auto && v : zipped)
-                {
-                    f.write_structure_record(*secondary_stream,
-                                             options,
-                                             std::get<0>(v) | views::get<0>, // seq
-                                             std::get<1>(v),  // id
-                                             std::get<2>(v),  // bpp
-                                             std::get<0>(v) | views::get<1>, // structure
-                                             std::get<3>(v),  // energy
-                                             std::get<4>(v),  // react
-                                             std::get<5>(v),  // react_error
-                                             std::get<6>(v),  // comment
-                                             std::get<7>(v)); // offset
-                }
-            }
-            else
-            {
-                auto zipped = views::zip(seq, id, bpp, structure, energy, react, react_error, comment, offset);
-
-                for (auto && v : zipped)
-                {
-                    f.write_structure_record(*secondary_stream,
-                                             options,
-                                             std::get<0>(v),
-                                             std::get<1>(v),
-                                             std::get<2>(v),
-                                             std::get<3>(v),
-                                             std::get<4>(v),
-                                             std::get<5>(v),
-                                             std::get<6>(v),
-                                             std::get<7>(v),
-                                             std::get<8>(v));
-                }
-            }
-        }, format);
-    }
-
     //!\brief Befriend iterator so it can access the buffers.
     friend iterator;
 };
@@ -815,23 +663,20 @@ protected:
  */
 
 //!\brief Deduction of the selected fields, the file format and the stream type.
-template <output_stream                  stream_t,
+template <output_stream stream_t,
           structure_file_output_format file_format,
-          detail::fields_specialisation            selected_field_ids>
+          detail::fields_specialisation selected_field_ids>
 structure_file_output(stream_t &&, file_format const &, selected_field_ids const &)
     -> structure_file_output<selected_field_ids,
-                             type_list<file_format>,
-                             typename std::remove_reference_t<stream_t>::char_type>;
+                             type_list<file_format>>;
 
 //!\overload
-template <output_stream                  stream_t,
+template <output_stream stream_t,
           structure_file_output_format file_format,
-          detail::fields_specialisation            selected_field_ids>
+          detail::fields_specialisation selected_field_ids>
 structure_file_output(stream_t &, file_format const &, selected_field_ids const &)
     -> structure_file_output<selected_field_ids,
-                             type_list<file_format>,
-                             typename std::remove_reference_t<stream_t>::char_type>;
+                             type_list<file_format>>;
 //!\}
 
 } // namespace seqan3
-#pragma GCC diagnostic pop

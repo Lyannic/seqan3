@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -11,10 +11,8 @@
 
 #include "../../io/stream/istream_test_template.hpp"
 
-using namespace seqan3;
-
 template <>
-class istream<contrib::bz2_istream> : public ::testing::Test
+class istream<seqan3::contrib::bz2_istream> : public ::testing::Test
 {
 public:
     static inline std::string compressed
@@ -27,6 +25,6 @@ public:
     };
 };
 
-using test_types = ::testing::Types<contrib::bz2_istream>;
+using test_types = ::testing::Types<seqan3::contrib::bz2_istream>;
 
-INSTANTIATE_TYPED_TEST_CASE_P(contrib_streams, istream, test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(contrib_streams, istream, test_types, );

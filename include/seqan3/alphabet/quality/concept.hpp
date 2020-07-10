@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -237,7 +237,7 @@ SEQAN3_CONCEPT quality_alphabet = alphabet<t> && requires(t qual)
 // seqan3::writable_quality_alphabet
 // ============================================================================
 
-/*!\interface seqan3::quality_alphabet <>
+/*!\interface seqan3::writable_quality_alphabet <>
  * \extends seqan3::alphabet
  * \brief A concept that indicates whether a writable alphabet represents quality scores.
  * \ingroup quality

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -9,9 +9,6 @@
 
 #include <seqan3/alignment/band/static_band.hpp>
 #include <seqan3/std/ranges>
-
-using namespace seqan3;
-using namespace seqan3::detail;
 
 template <typename t>
 struct alignment_matrix_base_test : public ::testing::Test
@@ -22,7 +19,7 @@ struct alignment_matrix_base_test : public ::testing::Test
     alignment_matrix_base_test()
     {
         if constexpr (is_banded)
-            test_range = matrix_t{first, second, static_band{lower_bound{-2}, upper_bound{2}}};
+            test_range = matrix_t{first, second, seqan3::static_band{seqan3::lower_bound{-2}, seqan3::upper_bound{2}}};
         else
             test_range = matrix_t{first, second};
     }
@@ -32,12 +29,12 @@ struct alignment_matrix_base_test : public ::testing::Test
     matrix_t test_range{};
 };
 
-TYPED_TEST_CASE_P(alignment_matrix_base_test);
+TYPED_TEST_SUITE_P(alignment_matrix_base_test);
 
 TYPED_TEST_P(alignment_matrix_base_test, range_concepts)
 {
     using outer_it = std::ranges::iterator_t<typename TestFixture::matrix_t>;
-    using column_t = value_type_t<outer_it>;
+    using column_t = std::iter_value_t<outer_it>;
     using inner_it = std::ranges::iterator_t<column_t>;
 
     EXPECT_TRUE(std::ranges::input_range<typename TestFixture::matrix_t>);
@@ -93,7 +90,7 @@ TYPED_TEST_P(alignment_matrix_base_test, empty_row)
 
     if constexpr (TestFixture::is_banded)
     {
-        static_band band{lower_bound{-2}, upper_bound{4}};
+        seqan3::static_band band{seqan3::lower_bound{-2}, seqan3::upper_bound{4}};
         test_matrix_iteration(matrix_type{this->first, std::string{""}, band}, 5, 5);
     }
     else
@@ -108,7 +105,7 @@ TYPED_TEST_P(alignment_matrix_base_test, empty_col)
 
     if constexpr (TestFixture::is_banded)
     {
-        static_band band{lower_bound{-2}, upper_bound{2}};
+        seqan3::static_band band{seqan3::lower_bound{-2}, seqan3::upper_bound{2}};
         test_matrix_iteration(matrix_type{std::string{""}, this->second, band}, 1, 3);
     }
     else
@@ -123,7 +120,7 @@ TYPED_TEST_P(alignment_matrix_base_test, empty_col_row)
 
     if constexpr (TestFixture::is_banded)
     {
-        static_band band{lower_bound{0}, upper_bound{2}};
+        seqan3::static_band band{seqan3::lower_bound{0}, seqan3::upper_bound{2}};
         test_matrix_iteration(matrix_type{std::string{""}, std::string{""}, band}, 1, 1);
     }
     else
@@ -132,5 +129,5 @@ TYPED_TEST_P(alignment_matrix_base_test, empty_col_row)
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(alignment_matrix_base_test, range_concepts, begin_end, basic_construction, empty_row,
-                           empty_col, empty_col_row);
+REGISTER_TYPED_TEST_SUITE_P(alignment_matrix_base_test, range_concepts, begin_end, basic_construction, empty_row,
+                            empty_col, empty_col_row);

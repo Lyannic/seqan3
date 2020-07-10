@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ struct naive_kmer_hash_fn
      */
     template <std::ranges::viewable_range urng_t>
     //!\cond
-        requires semialphabet<reference_t<urng_t>>
+        requires semialphabet<std::ranges::range_reference_t<urng_t>>
     //!\endcond
     constexpr auto operator()(urng_t && urange, size_t const k) const noexcept
     {

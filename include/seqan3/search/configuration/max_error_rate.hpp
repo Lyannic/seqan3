@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -30,7 +30,8 @@ namespace seqan3::search_cfg
  *        (mismatches, insertions, deletions). This is an upper bound of errors independent from error rates of
  *        specific error types.
  * \ingroup search_configuration
- * \details An insertion corresponds to a base inserted into the query that does not occur in the text at the position,
+ * \details A mismatch corresponds to diverging bases between text and query for a certain position.
+ *          An insertion corresponds to a base inserted into the query that does not occur in the text at the position,
  *          a deletion corresponds to a base deleted from the query sequence that does occur in the indexed text.
  *          Deletions at the beginning and at the end of the sequence are not considered during a search.
  */

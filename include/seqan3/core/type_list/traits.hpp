@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ auto at()
         return std::type_identity<head_t>{};
     else if constexpr (idx > 0)
 #ifdef __clang__
-        return std::type_identity<__type_pack_element<idx - 1, tail_t...>>;
+        return std::type_identity<__type_pack_element<idx - 1, tail_t...>>{};
 #else
         return at<idx - 1, tail_t...>();
 #endif // __clang__

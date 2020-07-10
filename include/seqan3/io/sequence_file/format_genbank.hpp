@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ namespace seqan3
  *
  * ### fields_specialisation
  *
- * The genbank format provides the fields seqan3::field::SEQ and seqan3::field::ID. Both fields are required when
+ * The genbank format provides the fields seqan3::field::seq and seqan3::field::id. Both fields are required when
  * writing.
  *
  * ### Implementation notes
@@ -120,7 +120,7 @@ protected:
                 while (!is_char<'O'>(*std::ranges::begin(stream_view)))
                 {
                         std::ranges::copy(stream_view | views::take_line_or_throw
-                                                      | views::char_to<value_type_t<id_type>>,
+                                                      | views::char_to<std::ranges::range_value_t<id_type>>,
                                                         std::ranges::back_inserter(id));
                         id.push_back('\n');
                 }
@@ -132,7 +132,7 @@ protected:
                 auto read_id_until = [&stream_view, &id] (auto predicate)
                 {
                     std::ranges::copy(stream_view | views::take_until_or_throw(predicate)
-                                                  | views::char_to<value_type_t<id_type>>,
+                                                  | views::char_to<std::ranges::range_value_t<id_type>>,
                                       std::ranges::back_inserter(id));
                 };
 
@@ -162,13 +162,13 @@ protected:
                                                 if (!is_legal_alph(c))
                                                 {
                                                     throw parse_error{std::string{"Encountered an unexpected letter: "} +
-                                                                      is_legal_alph.msg.str() +
+                                                                      is_legal_alph.msg +
                                                                       " evaluated to false on " +
                                                                       detail::make_printable(c)};
                                                 }
                                                 return c;
                                             })
-                                          | views::char_to<value_type_t<seq_type>>,    // convert to actual target alphabet
+                                          | views::char_to<std::ranges::range_value_t<seq_type>>,    // convert to actual target alphabet
                                             std::ranges::back_inserter(sequence));
         }
         else

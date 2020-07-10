@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -252,12 +252,12 @@ public:
 
     //!\brief Inherit the base type's constructors.
     using base_type::base_type;
-    //!\}
 
     //!\brief Store both arguments in the adaptor.
-    combined_adaptor(left_adaptor_t l, right_adaptor_t r) :
+    constexpr combined_adaptor(left_adaptor_t l, right_adaptor_t r) :
         base_type{std::forward<left_adaptor_t>(l), std::forward<right_adaptor_t>(r)}
     {}
+    //!\}
 };
 
 // ============================================================================

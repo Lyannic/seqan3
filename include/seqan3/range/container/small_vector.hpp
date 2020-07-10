@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -159,7 +159,7 @@ public:
     template <std::forward_iterator begin_it_type, typename end_it_type>
     //!\cond
         requires std::sentinel_for<end_it_type, begin_it_type> &&
-                 std::constructible_from<value_type, /*ranges::iter_reference_t*/reference_t<begin_it_type>>
+                 std::constructible_from<value_type, std::iter_reference_t<begin_it_type>>
     //!\endcond
     constexpr small_vector(begin_it_type begin_it, end_it_type end_it) noexcept(is_noexcept) :
         small_vector{}
@@ -169,7 +169,7 @@ public:
 
     /*!\brief Construct from a different range.
      * \tparam other_range_t The type of range to be inserted; must satisfy std::ranges::input_range and `value_type`
-     *                       must be constructible from reference_t<other_range_t>.
+     *                       must be constructible from std::ranges::range_reference_t<other_range_t>.
      * \param[in]      range The sequences to construct/assign from.
      *
      * ### Complexity
@@ -183,7 +183,7 @@ public:
     template <std::ranges::input_range other_range_t>
     //!\cond
         requires !std::is_same_v<remove_cvref_t<other_range_t>, small_vector>
-                 /*ICE: && std::constructible_from<value_type, reference_t<other_range_t>>*/
+                 /*ICE: && std::constructible_from<value_type, std::ranges::range_reference_t<other_range_t>>*/
     //!\endcond
     explicit constexpr small_vector(other_range_t && range) noexcept(is_noexcept) :
         small_vector{std::ranges::begin(range), std::ranges::end(range)}
@@ -261,7 +261,7 @@ public:
 
     /*!\brief Assign from a different range.
      * \tparam other_range_t The type of range to be inserted; must satisfy std::ranges::input_range and `value_type`
-     *                       must be constructible from reference_t<other_range_t>.
+     *                       must be constructible from std::ranges::range_reference_t<other_range_t>.
      * \param[in]      range The sequences to construct/assign from.
      *
      * ### Complexity
@@ -274,7 +274,7 @@ public:
      */
     template <std::ranges::input_range other_range_t>
     //!\cond
-        requires std::constructible_from<value_type, /*ranges::range_reference_t*/reference_t<other_range_t>>
+        requires std::constructible_from<value_type, std::ranges::range_reference_t<other_range_t>>
     //!\endcond
     constexpr void assign(other_range_t && range) noexcept(is_noexcept)
     {
@@ -299,7 +299,7 @@ public:
     template <std::forward_iterator begin_it_type, typename end_it_type>
     //!\cond
         requires std::sentinel_for<end_it_type, begin_it_type> &&
-                 std::constructible_from<value_type, /*ranges::iter_reference_t*/reference_t<begin_it_type>>
+                 std::constructible_from<value_type, std::iter_reference_t<begin_it_type>>
     //!\endcond
     constexpr void assign(begin_it_type begin_it, end_it_type end_it) noexcept(is_noexcept)
     {
@@ -644,7 +644,7 @@ public:
     template <std::forward_iterator begin_it_type, typename end_it_type>
     //!\cond
         requires std::sentinel_for<end_it_type, begin_it_type> &&
-                 std::constructible_from<value_type, /*ranges::iter_reference_t*/reference_t<begin_it_type>>
+                 std::constructible_from<value_type, std::iter_reference_t<begin_it_type>>
     //!\endcond
     constexpr iterator insert(const_iterator pos, begin_it_type begin_it, end_it_type end_it) noexcept(is_noexcept)
     {
@@ -869,9 +869,6 @@ public:
 
     //!\brief Performs element-wise comparison.
     template <size_t cap2>
-    //!\cond
-        requires cap2 <= capacity_ /* resolves ambiguousness when comparing two small_vectors of unequal capacity */
-    //!\endcond
     friend constexpr bool operator==(small_vector const & lhs, small_vector<value_type, cap2> const & rhs) noexcept
     {
         return std::ranges::equal(lhs, rhs);
@@ -879,9 +876,6 @@ public:
 
     //!\brief Performs element-wise comparison.
     template <size_t cap2>
-    //!\cond
-        requires cap2 <= capacity_
-    //!\endcond
     friend constexpr bool operator!=(small_vector const & lhs, small_vector<value_type, cap2> const & rhs) noexcept
     {
         return !(lhs == rhs);
@@ -889,9 +883,6 @@ public:
 
     //!\brief Performs element-wise comparison.
     template <size_t cap2>
-    //!\cond
-        requires cap2 <= capacity_
-    //!\endcond
     friend constexpr bool operator<(small_vector const & lhs, small_vector<value_type, cap2> const & rhs) noexcept
     {
         for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
@@ -904,9 +895,6 @@ public:
 
     //!\brief Performs element-wise comparison.
     template <size_t cap2>
-    //!\cond
-        requires cap2 <= capacity_
-    //!\endcond
     friend constexpr bool operator>(small_vector const & lhs, small_vector<value_type, cap2> const & rhs) noexcept
     {
         for (size_t i = 0; i < std::min(lhs.size(), rhs.size()); ++i)
@@ -919,9 +907,6 @@ public:
 
     //!\brief Performs element-wise comparison.
     template <size_t cap2>
-    //!\cond
-        requires cap2 <= capacity_
-    //!\endcond
     friend constexpr bool operator<=(small_vector const & lhs, small_vector<value_type, cap2> const & rhs) noexcept
     {
         return !(lhs > rhs);
@@ -929,9 +914,6 @@ public:
 
     //!\brief Performs element-wise comparison.
     template <size_t cap2>
-    //!\cond
-        requires cap2 <= capacity_
-    //!\endcond
     friend constexpr bool operator>=(small_vector const & lhs, small_vector<value_type, cap2> const & rhs) noexcept
     {
         return !(lhs < rhs);
@@ -939,6 +921,8 @@ public:
     //!\}
 
 protected:
+    //!\privatesection
+
     //!\brief Stores the actual data_.
     std::array<value_type, capacity_> data_{};
     //!\brief The size of the actual contained data_.

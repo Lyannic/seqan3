@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -20,7 +20,6 @@
 #include <seqan3/core/type_traits/transformation_trait_or.hpp>
 #include <seqan3/io/exception.hpp>
 #include <seqan3/range/concept.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/container/concept.hpp>
 #include <seqan3/range/views/detail.hpp>
 #include <seqan3/range/detail/inherited_iterator_base.hpp>
@@ -281,25 +280,18 @@ private:
         //!\}
     }; // class iterator_type
 
+private:
     /*!\name Associated types
      * \{
      */
-    //!\brief The reference_type.
-    using reference         = reference_t<urng_t>;
-    //!\brief The const_reference type is equal to the reference type if the underlying range is const-iterable.
-    using const_reference   = detail::transformation_trait_or_t<seqan3::reference<urng_t const>, void>;
-    //!\brief The value_type (which equals the reference_type with any references removed).
-    using value_type        = value_type_t<urng_t>;
-    //!\brief The size_type is `size_t` if the view is exact, otherwise `void`.
-    using size_type         = std::conditional_t<exactly || std::ranges::sized_range<urng_t>,
-                                                 transformation_trait_or_t<seqan3::size_type<urng_t>, size_t>,
-                                                 void>;
-    //!\brief A signed integer type, usually std::ptrdiff_t.
-    using difference_type   = difference_type_t<urng_t>;
     //!\brief The iterator type of this view (a random access iterator).
     using iterator          = iterator_type<urng_t>;
-    //!\brief The const_iterator type is equal to the iterator type if the underlying range is const-iterable.
-    using const_iterator    = detail::transformation_trait_or_t<std::type_identity<iterator_type<urng_t const>>, void>;
+    /*!\brief Note that this declaration does not give any compiler errors for non-const iterable ranges. Although
+     * `iterator_type` inherits from std::ranges::iterator_t which is not defined on a const-range, i.e. `urng_t const,
+     *  if it is not const-iterable. We only just declare this type and never instantiate it, i.e. use this type within
+     *  this class, if the underlying range is not const-iterable.
+     */
+    using const_iterator    = iterator_type<urng_t const>;
     //!\}
 
 public:
@@ -445,8 +437,9 @@ public:
     /*!\brief Returns the number of elements in the view.
      * \returns The number of elements in the view.
      *
-     * This overload is only available if the underlying range models std::ranges::sized_range or for
-     * specialisation that have the `exactly` template parameter set.
+     * This overload is only available if the underlying range models std::ranges::sized_range (return type is
+     * std::ranges::range_size_t<urng_type>) or for specialisation that have the `exactly` (return type is std::size_t)
+     * template parameter set. If both conditions are true the return type is `std::size_t`.
      *
      * ### Complexity
      *
@@ -456,7 +449,7 @@ public:
      *
      * No-throw guarantee.
      */
-    constexpr size_type size() const noexcept
+    constexpr auto size() const noexcept
         requires exactly || std::ranges::sized_range<urng_t>
     {
         return target_size;
@@ -582,33 +575,33 @@ namespace seqan3::views
  *
  * ### View properties
  *
- * | Concepts and traits              | `urng_t` (underlying range type)   | `rrng_t` (returned range type)   |
- * |----------------------------------|:----------------------------------:|:--------------------------------:|
- * | std::ranges::input_range         | *required*                         | *preserved*                      |
- * | std::ranges::forward_range       |                                    | *preserved*                      |
- * | std::ranges::bidirectional_range |                                    | *preserved*                      |
- * | std::ranges::random_access_range |                                    | *preserved*                      |
- * | std::ranges::contiguous_range    |                                    | *preserved*                      |
- * |                                  |                                    |                                  |
- * | std::ranges::viewable_range      | *required*                         | *guaranteed*                     |
- * | std::ranges::view                |                                    | *guaranteed*                     |
- * | std::ranges::sized_range         |                                    | *preserved*                      |
- * | std::ranges::common_range        |                                    | *preserved*                      |
- * | std::ranges::output_range        |                                    | *preserved*                      |
- * | seqan3::const_iterable_range     |                                    | *preserved*                      |
- * |                                  |                                    |                                  |
- * | std::ranges::range_reference_t   |                                    | seqan3::reference_t<urng_t>      |
+ * | Concepts and traits              | `urng_t` (underlying range type)   | `rrng_t` (returned range type)         |
+ * |----------------------------------|:----------------------------------:|:--------------------------------------:|
+ * | std::ranges::input_range         | *required*                         | *preserved*                            |
+ * | std::ranges::forward_range       |                                    | *preserved*                            |
+ * | std::ranges::bidirectional_range |                                    | *preserved*                            |
+ * | std::ranges::random_access_range |                                    | *preserved*                            |
+ * | std::ranges::contiguous_range    |                                    | *preserved*                            |
+ * |                                  |                                    |                                        |
+ * | std::ranges::viewable_range      | *required*                         | *guaranteed*                           |
+ * | std::ranges::view                |                                    | *guaranteed*                           |
+ * | std::ranges::sized_range         |                                    | *preserved*                            |
+ * | std::ranges::common_range        |                                    | *preserved*                            |
+ * | std::ranges::output_range        |                                    | *preserved*                            |
+ * | seqan3::const_iterable_range     |                                    | *preserved*                            |
+ * |                                  |                                    |                                        |
+ * | std::ranges::range_reference_t   |                                    | std::ranges::range_reference_t<urng_t> |
  *
  * See the \link views views submodule documentation \endlink for detailed descriptions of the view properties.
  *
  * ### Return type
  *
- * | `urng_t` (underlying range type)                                                       | `rrng_t` (returned range type)  |
- * |:--------------------------------------------------------------------------------------:|:-------------------------------:|
- * | `std::basic_string const &` *or* `std::basic_string_view`                              | `std::basic_string_view`        |
- * | `seqan3::forwarding_range && std::ranges::sized_range && std::ranges::contiguous_range`   | `std::span`                     |
+ * | `urng_t` (underlying range type)                                                           | `rrng_t` (returned range type)  |
+ * |:------------------------------------------------------------------------------------------:|:-------------------------------:|
+ * | `std::basic_string const &` *or* `std::basic_string_view`                                  | `std::basic_string_view`        |
+ * | `seqan3::forwarding_range && std::ranges::sized_range && std::ranges::contiguous_range`    | `std::span`                     |
  * | `seqan3::forwarding_range && std::ranges::sized_range && std::ranges::random_access_range` | `std::ranges::subrange`         |
- * | *else*                                                                                 | *implementation defined type*   |
+ * | *else*                                                                                     | *implementation defined type*   |
  *
  * This adaptor is different from std::views::take in that it performs type erasure for some underlying ranges.
  * It returns exactly the type specified above.

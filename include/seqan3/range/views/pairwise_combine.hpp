@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -455,7 +455,7 @@ public:
     //!\brief If the underliying range is Sized, this resolves to range_type::size_type, otherwise void.
     using size_type         = detail::transformation_trait_or_t<seqan3::size_type<underlying_range_type>, void>;
     //!\brief A signed integer type, usually std::ptrdiff_t.
-    using difference_type   = difference_type_t<iterator>;
+    using difference_type   = std::iter_difference_t<iterator>;
     //!\}
 
     /*!\name Constructors, destructor and assignment
@@ -697,22 +697,22 @@ namespace seqan3::views
  *
  * ### View properties
  *
- * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)                                         |
- * |----------------------------------|:-------------------------------------:|:----------------------------------------------------------------------:|
- * | std::ranges::input_range         | *required*                            | *preserved*                                                            |
- * | std::ranges::forward_range       | *required*                            | *preserved*                                                            |
- * | std::ranges::bidirectional_range |                                       | *preserved*                                                            |
- * | std::ranges::random_access_range |                                       | *preserved*                                                            |
- * | std::ranges::contiguous_range    |                                       | *lost*                                                                 |
- * |                                  |                                       |                                                                        |
- * | std::ranges::viewable_range      | *required*                            | *guaranteed*                                                           |
- * | std::ranges::view                |                                       | *guaranteed*                                                           |
- * | std::ranges::sized_range         |                                       | *preserved*                                                            |
- * | std::ranges::common_range        | *required*                            | *guaranteed*                                                           |
- * | std::ranges::output_range        |                                       | *preserved*                                                            |
- * | seqan3::const_iterable_range     |                                       | *preserved*                                                            |
- * |                                  |                                       |                                                                        |
- * | std::ranges::range_reference_t   |                                       | common_tuple<seqan3::reference_t<urng_t>, seqan3::reference_t<urng_t>> |
+ * | Concepts and traits              | `urng_t` (underlying range type)      | `rrng_t` (returned range type)                                                               |
+ * |----------------------------------|:-------------------------------------:|:--------------------------------------------------------------------------------------------:|
+ * | std::ranges::input_range         | *required*                            | *preserved*                                                                                  |
+ * | std::ranges::forward_range       | *required*                            | *preserved*                                                                                  |
+ * | std::ranges::bidirectional_range |                                       | *preserved*                                                                                  |
+ * | std::ranges::random_access_range |                                       | *preserved*                                                                                  |
+ * | std::ranges::contiguous_range    |                                       | *lost*                                                                                       |
+ * |                                  |                                       |                                                                                              |
+ * | std::ranges::viewable_range      | *required*                            | *guaranteed*                                                                                 |
+ * | std::ranges::view                |                                       | *guaranteed*                                                                                 |
+ * | std::ranges::sized_range         |                                       | *preserved*                                                                                  |
+ * | std::ranges::common_range        | *required*                            | *guaranteed*                                                                                 |
+ * | std::ranges::output_range        |                                       | *preserved*                                                                                  |
+ * | seqan3::const_iterable_range     |                                       | *preserved*                                                                                  |
+ * |                                  |                                       |                                                                                              |
+ * | std::ranges::range_reference_t   |                                       | common_tuple<std::ranges::range_reference_t<urng_t>, std::ranges::range_reference_t<urng_t>> |
  *
  * See the \link views views submodule documentation \endlink for detailed descriptions of the view properties.
  *

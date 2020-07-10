@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -73,8 +73,8 @@ public:
     //!\brief Allow explicit construction from any other nucleotide type and convert via the character representation.
     template <typename other_nucl_type>
     //!\cond
-        requires !std::same_as<nucleotide_base, other_nucl_type> &&
-                 !std::same_as<derived_type, other_nucl_type> &&
+        requires (!std::same_as<nucleotide_base, other_nucl_type>) &&
+                 (!std::same_as<derived_type, other_nucl_type>) &&
                  nucleotide_alphabet<other_nucl_type>
     //!\endcond
     explicit constexpr nucleotide_base(other_nucl_type const & other) noexcept

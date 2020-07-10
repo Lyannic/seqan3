@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -29,9 +29,6 @@
 
 #include <sstream>
 
-using namespace seqan3;
-using namespace seqan3::test;
-
 inline constexpr size_t iterations_per_run = 1024;
 
 inline std::string const fasta_hdr{"seq foobar blobber"};
@@ -55,7 +52,8 @@ static std::string fasta_file = []()
 void write3(benchmark::State & state)
 {
     std::ostringstream ostream;
-    sequence_file_output fout{ostream, format_fasta{}, fields<field::ID, field::SEQ>{}};
+    seqan3::sequence_file_output fout{ostream, seqan3::format_fasta{}, seqan3::fields<seqan3::field::id,
+                                                                                      seqan3::field::seq>{}};
 
     for (auto _ : state)
     {
@@ -68,7 +66,7 @@ void write3(benchmark::State & state)
     size_t bytes_per_run = ostream.str().size() * iterations_per_run;
     state.counters["iterations_per_run"] = iterations_per_run;
     state.counters["bytes_per_run"] = bytes_per_run;
-    state.counters["bytes_per_second"] = bytes_per_second(bytes_per_run);
+    state.counters["bytes_per_second"] = seqan3::test::bytes_per_second(bytes_per_run);
 }
 
 BENCHMARK(write3);
@@ -92,7 +90,7 @@ void write2(benchmark::State & state)
     size_t bytes_per_run = ostream.str().size() * iterations_per_run;
     state.counters["iterations_per_run"] = iterations_per_run;
     state.counters["bytes_per_run"] = bytes_per_run;
-    state.counters["bytes_per_second"] = bytes_per_second(bytes_per_run);
+    state.counters["bytes_per_second"] = seqan3::test::bytes_per_second(bytes_per_run);
 }
 
 BENCHMARK(write2);
@@ -101,7 +99,7 @@ BENCHMARK(write2);
 void read3(benchmark::State & state)
 {
     std::istringstream istream{fasta_file};
-    sequence_file_input fin{istream, format_fasta{}};
+    seqan3::sequence_file_input fin{istream, seqan3::format_fasta{}};
 
     for (auto _ : state)
     {
@@ -116,7 +114,7 @@ void read3(benchmark::State & state)
     size_t bytes_per_run = fasta_file.size();
     state.counters["iterations_per_run"] = iterations_per_run;
     state.counters["bytes_per_run"] = bytes_per_run;
-    state.counters["bytes_per_second"] = bytes_per_second(bytes_per_run);
+    state.counters["bytes_per_second"] = seqan3::test::bytes_per_second(bytes_per_run);
 }
 BENCHMARK(read3);
 
@@ -148,7 +146,7 @@ void read2(benchmark::State & state)
     size_t bytes_per_run = fasta_file.size();
     state.counters["iterations_per_run"] = iterations_per_run;
     state.counters["bytes_per_run"] = bytes_per_run;
-    state.counters["bytes_per_second"] = bytes_per_second(bytes_per_run);
+    state.counters["bytes_per_second"] = seqan3::test::bytes_per_second(bytes_per_run);
 }
 BENCHMARK(read2);
 #endif

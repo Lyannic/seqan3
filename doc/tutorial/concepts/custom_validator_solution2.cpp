@@ -4,14 +4,14 @@
 
 struct custom_validator
 {
-    using value_type = double; // used for all arithmetic types
+    using option_value_type = double; // used for all arithmetic types
 
-    void operator() (value_type const & val) const
+    void operator() (option_value_type const & val) const
     {
         if ((std::round(val)                         != val) ||  // not an integer
             (std::pow(std::round(std::sqrt(val)), 2) != val))    // not a square
         {
-            throw seqan3::parser_invalid_argument{"The provided number is not an arithmetic square."};
+            throw seqan3::validation_error{"The provided number is not an arithmetic square."};
         }
     }
 
@@ -42,13 +42,13 @@ int main(int argc, char ** argv)
     {
          myparser.parse(); // trigger command line parsing
     }
-    catch (seqan3::parser_invalid_argument const & ext)
+    catch (seqan3::argument_parser_error const & ext)
     {
         seqan3::debug_stream << ext.what() << '\n';
         return -1;
     }
 
-    seqan3::debug_stream << "Yeah!" << std::endl;
+    seqan3::debug_stream << "Yeah!\n";
 
     return 0;
 }

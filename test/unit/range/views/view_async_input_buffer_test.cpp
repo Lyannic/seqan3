@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -17,13 +17,14 @@
 #include <seqan3/range/views/single_pass_input.hpp>
 #include <seqan3/range/views/take.hpp>
 #include <seqan3/std/ranges>
+#include <seqan3/test/expect_range_eq.hpp>
 
 #include "../iterator_test_template.hpp"
 
-using namespace seqan3;
+using seqan3::operator""_dna4;
 
 using iterator_type = std::ranges::iterator_t<
-    decltype(std::declval<std::vector<seqan3::dna4>&>() | views::async_input_buffer(3))>;
+    decltype(std::declval<seqan3::dna4_vector&>() | seqan3::views::async_input_buffer(3))>;
 
 template <>
 struct iterator_fixture<iterator_type> : public ::testing::Test
@@ -31,56 +32,56 @@ struct iterator_fixture<iterator_type> : public ::testing::Test
     using iterator_tag = std::input_iterator_tag;
     static constexpr bool const_iterable = false;
 
-    std::vector<seqan3::dna4> vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
-    std::vector<seqan3::dna4> expected_range{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
-    decltype(views::async_input_buffer(vec, 3)) test_range = views::async_input_buffer(vec, 3);
+    seqan3::dna4_vector vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    seqan3::dna4_vector expected_range{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    decltype(seqan3::views::async_input_buffer(vec, 3)) test_range = seqan3::views::async_input_buffer(vec, 3);
 };
 
 using test_type = ::testing::Types<iterator_type>;
-INSTANTIATE_TYPED_TEST_CASE_P(iterator_fixture, iterator_fixture, test_type);
+INSTANTIATE_TYPED_TEST_SUITE_P(iterator_fixture, iterator_fixture, test_type, );
 
 TEST(async_input_buffer, in_out)
 {
-    std::vector<seqan3::dna4> vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    seqan3::dna4_vector vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
 
-    auto v = vec | views::async_input_buffer(3);
+    auto v = vec | seqan3::views::async_input_buffer(3);
 
-    EXPECT_TRUE(std::ranges::equal(vec, v));
+    EXPECT_RANGE_EQ(vec, v);
 }
 
 TEST(async_input_buffer, in_out_empty)
 {
-    std::vector<seqan3::dna4> vec{};
+    seqan3::dna4_vector vec{};
 
-    auto v = vec | views::async_input_buffer(3);
+    auto v = vec | seqan3::views::async_input_buffer(3);
 
     EXPECT_TRUE(v.begin() == v.end());
 }
 
 TEST(async_input_buffer, buffer_size_zero)
 {
-    std::vector<seqan3::dna4> vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    seqan3::dna4_vector vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
 
-    EXPECT_THROW(vec | views::async_input_buffer(0), std::invalid_argument);
+    EXPECT_THROW(vec | seqan3::views::async_input_buffer(0), std::invalid_argument);
 }
 
 TEST(async_input_buffer, buffer_size_huge)
 {
-    std::vector<seqan3::dna4> vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    seqan3::dna4_vector vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
 
-    auto v = vec | views::async_input_buffer(100000);
+    auto v = vec | seqan3::views::async_input_buffer(100000);
 
-    EXPECT_TRUE(std::ranges::equal(vec, v));
+    EXPECT_RANGE_EQ(vec, v);
 }
 
 TEST(async_input_buffer, destruct_with_full_buffer)
 {
-    std::vector<seqan3::dna4> vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    seqan3::dna4_vector vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
 
-    auto v0 = vec | views::single_pass_input;
+    auto v0 = vec | seqan3::views::single_pass_input;
 
     {
-        auto v1 = v0 | views::async_input_buffer(5);
+        auto v1 = v0 | seqan3::views::async_input_buffer(5);
 
         // consume five elements (construction already consumes one)
         auto b = std::ranges::begin(v1);
@@ -99,26 +100,26 @@ TEST(async_input_buffer, destruct_with_full_buffer)
 
 TEST(async_input_buffer, combinability)
 {
-    std::vector<seqan3::dna4> vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
-    std::vector<seqan3::dna4> cmp{"ACGTACGTAC"_dna4};
+    seqan3::dna4_vector vec{"ACGTACGTACGTATCGAGAGCTTTAGC"_dna4};
+    seqan3::dna4_vector cmp{"ACGTACGTAC"_dna4};
 
-    auto adapt = views::async_input_buffer(5) | views::take(10);
+    auto adapt = seqan3::views::async_input_buffer(5) | seqan3::views::take(10);
 
     auto v = vec | adapt;
 
-    EXPECT_TRUE(std::ranges::equal(cmp, v));
+    EXPECT_RANGE_EQ(cmp, v);
 }
 
 TEST(async_input_buffer, concepts)
 {
     std::vector<int> vec;
 
-    auto v1 = vec | views::async_input_buffer(1);
+    auto v1 = vec | seqan3::views::async_input_buffer(1);
 
     EXPECT_TRUE(std::ranges::input_range<decltype(v1)>);
     EXPECT_FALSE(std::ranges::forward_range<decltype(v1)>);
     EXPECT_FALSE(std::ranges::random_access_range<decltype(v1)>);
     EXPECT_FALSE(std::ranges::sized_range<decltype(v1)>);
-    EXPECT_FALSE(const_iterable_range<decltype(v1)>);
+    EXPECT_FALSE(seqan3::const_iterable_range<decltype(v1)>);
     EXPECT_TRUE(std::ranges::view<decltype(v1)>);
 }

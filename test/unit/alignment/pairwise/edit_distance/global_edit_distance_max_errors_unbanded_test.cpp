@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -94,5 +94,5 @@ using global_edit_distance_max_errors_unbanded_types2
         global_fixture<&global::edit_distance::max_errors::unbanded::aa27_01T_e255, uint64_t>
     >;
 
-INSTANTIATE_TYPED_TEST_CASE_P(global1, edit_distance_unbanded_test, global_edit_distance_max_errors_unbanded_types1);
-INSTANTIATE_TYPED_TEST_CASE_P(global2, edit_distance_unbanded_test, global_edit_distance_max_errors_unbanded_types2);
+INSTANTIATE_TYPED_TEST_SUITE_P(global1, edit_distance_unbanded_test, global_edit_distance_max_errors_unbanded_types1, );
+INSTANTIATE_TYPED_TEST_SUITE_P(global2, edit_distance_unbanded_test, global_edit_distance_max_errors_unbanded_types2, );

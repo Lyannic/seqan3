@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -19,7 +19,6 @@
 #include <seqan3/core/concept/cereal.hpp>
 #include <seqan3/core/concept/core_language.hpp>
 #include <seqan3/core/detail/strong_type.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/std/algorithm>
 
 #if SEQAN3_WITH_CEREAL
@@ -87,6 +86,7 @@ mismatch_score(score_type) -> mismatch_score<score_type>;
  * \tparam derived_t  The derived type.
  * \tparam alphabet_t Type of the largest target alphabet.
  * \tparam score_type Type of the score values in the internal matrix.
+ * \implements seqan3::cerealisable
  * \ingroup scoring
  *
  * \details
@@ -105,6 +105,8 @@ public:
      */
     //!\brief Type of the score values.
     using score_type = score_t;
+    //!\brief Type of the underlying alphabet.
+    using alphabet_type = alphabet_t;
     //!\brief Size type that can hold the dimension of the matrix (i.e. size of the alphabet).
     using matrix_size_type = std::remove_const_t<decltype(alphabet_size<alphabet_t>)>;
     //!\}

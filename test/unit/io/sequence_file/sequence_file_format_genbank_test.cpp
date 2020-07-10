@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE
 // -----------------------------------------------------------------------------------------------------
@@ -16,10 +16,8 @@
 
 #include "sequence_file_format_test_template.hpp"
 
-using namespace seqan3;
-
 template <>
-struct sequence_file_read<format_genbank> : public sequence_file_data
+struct sequence_file_read<seqan3::format_genbank> : public sequence_file_data
 {
     std::string standard_input
     {
@@ -102,29 +100,29 @@ ORIGIN
 // parametrized tests
 // ---------------------------------------------------------------------------------------------------------------------
 
-INSTANTIATE_TYPED_TEST_CASE_P(genbank, sequence_file_read, format_genbank);
-INSTANTIATE_TYPED_TEST_CASE_P(genbank, sequence_file_write, format_genbank);
+INSTANTIATE_TYPED_TEST_SUITE_P(genbank, sequence_file_read, seqan3::format_genbank, );
+INSTANTIATE_TYPED_TEST_SUITE_P(genbank, sequence_file_write, seqan3::format_genbank, );
 
 // ----------------------------------------------------------------------------
 // reading
 // ----------------------------------------------------------------------------
 
-struct read : public sequence_file_read<format_genbank>
+struct read : public sequence_file_read<seqan3::format_genbank>
 {
-    sequence_file_input_options<dna15, false> options{};
+    seqan3::sequence_file_input_options<seqan3::dna15, false> options{};
 
     void do_read_test(std::string const & input)
     {
         std::stringstream istream{input};
 
-        sequence_file_input fin{istream, format_genbank{}};
+        seqan3::sequence_file_input fin{istream, seqan3::format_genbank{}};
         fin.options = options;
 
         auto it = fin.begin();
         for (unsigned i = 0; i < 3; ++i, ++it)
         {
-            EXPECT_EQ(get<field::ID>(*it), ids[i]);
-            EXPECT_EQ(get<field::SEQ>(*it), seqs[i]);
+            EXPECT_EQ(seqan3::get<seqan3::field::id>(*it), ids[i]);
+            EXPECT_EQ(seqan3::get<seqan3::field::seq>(*it), seqs[i]);
         }
     }
 };
@@ -167,13 +165,14 @@ ACCESSION   ID3
 
 struct write : public sequence_file_data
 {
-    sequence_file_output_options options{};
+    seqan3::sequence_file_output_options options{};
 
     std::ostringstream ostream;
 
     void do_write_test()
     {
-        sequence_file_output fout{ostream, format_genbank{}, fields<field::SEQ, field::ID>{}};
+        seqan3::sequence_file_output fout{ostream, seqan3::format_genbank{}, seqan3::fields<seqan3::field::seq,
+                                                                                            seqan3::field::id>{}};
         fout.options = options;
 
         for (unsigned i = 0; i < 3; ++i)

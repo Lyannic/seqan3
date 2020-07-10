@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -67,8 +67,8 @@
 
 // Ranges [required]
 #if __has_include(<range/v3/version.hpp>)
-#   define RANGE_V3_MINVERSION 900
-#   define RANGE_V3_MAXVERSION 999
+#   define RANGE_V3_MINVERSION 1000
+#   define RANGE_V3_MAXVERSION 1099
 // TODO the following doesn't actually show the current version, only its formula. How'd you do it?
 #   define MSG "Your version: " STR(RANGE_V3_VERSION) \
                 "; minimum version: " STR(RANGE_V3_MINVERSION) \
@@ -183,18 +183,6 @@
 //!\brief Deprecation message for SeqAn 3.1.0 release.
 #if !defined(SEQAN3_DEPRECATED_310)
 #   define SEQAN3_DEPRECATED_310 [[deprecated("This will be removed in SeqAn-3.1.0; please see the documentation.")]]
-#endif
-
-// ============================================================================
-//  Architectures
-// ============================================================================
-
-// Warn if NO_WARN_X86_INTRINSICS is not set on PowerPC. See https://github.com/seqan/seqan3/pull/1157.
-#if defined(__powerpc64__)
-#   ifndef NO_WARN_X86_INTRINSICS
-#      pragma GCC warning "To use SeqAn3 on PowerPC, you may need to set -DNO_WARN_X86_INTRINSICS. \
-                           Please note that SeqAn3 is not yet optimised for PowerPC."
-#   endif
 #endif
 
 // ============================================================================

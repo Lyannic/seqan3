@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -13,13 +13,12 @@
 #include "../semi_alphabet_constexpr_test_template.hpp"
 #include "../semi_alphabet_test_template.hpp"
 
-using namespace seqan3;
 
-class alphabet_proxy_example : public alphabet_proxy<alphabet_proxy_example, dna4>
+class alphabet_proxy_example : public seqan3::alphabet_proxy<alphabet_proxy_example, seqan3::dna4>
 {
 private:
-    using alphabet_type = dna4;
-    using base_t = alphabet_proxy<alphabet_proxy_example, alphabet_type>;
+    using alphabet_type = seqan3::dna4;
+    using base_t = seqan3::alphabet_proxy<alphabet_proxy_example, alphabet_type>;
     friend base_t;
 
     constexpr void on_update() noexcept
@@ -39,10 +38,10 @@ public:
     using base_t::operator=;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(alphabet_proxy, alphabet_, alphabet_proxy_example);
-INSTANTIATE_TYPED_TEST_CASE_P(alphabet_proxy, semi_alphabet_test, alphabet_proxy_example);
-INSTANTIATE_TYPED_TEST_CASE_P(alphabet_proxy, alphabet_constexpr, alphabet_proxy_example);
-INSTANTIATE_TYPED_TEST_CASE_P(alphabet_proxy, semi_alphabet_constexpr, alphabet_proxy_example);
+INSTANTIATE_TYPED_TEST_SUITE_P(alphabet_proxy, alphabet_, alphabet_proxy_example, );
+INSTANTIATE_TYPED_TEST_SUITE_P(alphabet_proxy, semi_alphabet_test, alphabet_proxy_example, );
+INSTANTIATE_TYPED_TEST_SUITE_P(alphabet_proxy, alphabet_constexpr, alphabet_proxy_example, );
+INSTANTIATE_TYPED_TEST_SUITE_P(alphabet_proxy, semi_alphabet_constexpr, alphabet_proxy_example, );
 
 // -----------------------------------------------------------------------------------------------------
 // check handling of external types that do not provide members
@@ -110,11 +109,11 @@ static_assert(seqan3::alphabet_size<my_namespace::my_alph> == 2);
 static_assert(seqan3::semialphabet<my_namespace::my_alph>);
 static_assert(seqan3::alphabet<my_namespace::my_alph>);
 
-class alphabet_proxy_example2 : public alphabet_proxy<alphabet_proxy_example2, my_namespace::my_alph>
+class alphabet_proxy_example2 : public seqan3::alphabet_proxy<alphabet_proxy_example2, my_namespace::my_alph>
 {
 private:
     using alphabet_type = my_namespace::my_alph;
-    using base_t = alphabet_proxy<alphabet_proxy_example2, alphabet_type>;
+    using base_t = seqan3::alphabet_proxy<alphabet_proxy_example2, alphabet_type>;
     friend base_t;
 
     constexpr void on_update() noexcept
@@ -132,5 +131,5 @@ public:
     {};
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(alphabet_proxy2, alphabet_, alphabet_proxy_example2);
-INSTANTIATE_TYPED_TEST_CASE_P(alphabet_proxy2, alphabet_constexpr, alphabet_proxy_example2);
+INSTANTIATE_TYPED_TEST_SUITE_P(alphabet_proxy2, alphabet_, alphabet_proxy_example2, );
+INSTANTIATE_TYPED_TEST_SUITE_P(alphabet_proxy2, alphabet_constexpr, alphabet_proxy_example2, );

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -10,16 +10,16 @@
 #include <seqan3/alphabet/composite/alphabet_tuple_base.hpp>
 #include <seqan3/core/concept/tuple.hpp>
 
-using namespace seqan3;
+using seqan3::get;
 
 template <typename T>
 class alphabet_tuple_base_test : public ::testing::Test {};
 
-TYPED_TEST_CASE_P(alphabet_tuple_base_test);
+TYPED_TEST_SUITE_P(alphabet_tuple_base_test);
 
 TYPED_TEST_P(alphabet_tuple_base_test, concept_check)
 {
-    EXPECT_TRUE(tuple_like<TypeParam>);
+    EXPECT_TRUE(seqan3::tuple_like<TypeParam>);
 }
 
 // default/zero construction
@@ -508,6 +508,6 @@ TYPED_TEST_P(alphabet_tuple_base_test, cmp_to_composite_subtype)
     EXPECT_GT(TestFixture::assignable_to_value_2(), t2);
 }
 
-REGISTER_TYPED_TEST_CASE_P(alphabet_tuple_base_test, concept_check, ctr, aggr, cp_assgn, zro, cp_ctr, mv_ctr, mv_assgn,
+REGISTER_TYPED_TEST_SUITE_P(alphabet_tuple_base_test, concept_check, ctr, aggr, cp_assgn, zro, cp_ctr, mv_ctr, mv_assgn,
     swap, get_i, struct_binding, get_type, custom_ctr, custom_ctr_subtype, custom_assignment, custom_assignment_subtype,
     tuple_element, type_deduce, cast_to_element, cmp, cmp_to_composite, cmp_to_composite_subtype);

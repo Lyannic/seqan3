@@ -1,9 +1,12 @@
 #include <fstream>
 
+#include <seqan3/core/debug_stream.hpp>
 #include <seqan3/std/filesystem>
 
 struct write_file_dummy_struct
 {
+    std::filesystem::path const file_path = std::filesystem::temp_directory_path()/"my.fasta";
+
     write_file_dummy_struct()
     {
 
@@ -14,9 +17,18 @@ AGCT
 CGATCGA
 )//![fasta_file]";
 
-        std::ofstream file{std::filesystem::temp_directory_path()/"my.fasta"};
+        std::ofstream file{file_path};
         std::string str{file_raw};
         file << str.substr(1); // skip first newline
+    }
+
+    ~write_file_dummy_struct()
+    {
+        std::error_code ec{};
+        std::filesystem::remove(file_path, ec);
+
+        if (ec)
+            seqan3::debug_stream << "[WARNING] Could not delete " << file_path << ". " << ec.message() << '\n';
     }
 };
 
@@ -28,13 +40,11 @@ write_file_dummy_struct go{};
 #include <seqan3/std/filesystem>
 #include <seqan3/std/ranges> // std::ranges::copy
 
-using namespace seqan3;
-
 int main()
 {
     std::filesystem::path tmp_dir = std::filesystem::temp_directory_path(); // get the temp directory
 
-    sequence_file_input fin{tmp_dir/"my.fasta"};
+    seqan3::sequence_file_input fin{tmp_dir/"my.fasta"};
 
     using record_type = decltype(fin)::record_type;
     std::vector<record_type> records{};
@@ -49,6 +59,6 @@ int main()
     // But you can also do this:
     std::ranges::copy(fin, std::ranges::back_inserter(records));
 
-    debug_stream << records << std::endl;
+    seqan3::debug_stream << records << '\n';
 }
 //![solution]

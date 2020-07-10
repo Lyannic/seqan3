@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -11,10 +11,8 @@
 
 #include "../../io/stream/ostream_test_template.hpp"
 
-using namespace seqan3;
-
 template <>
-class ostream<contrib::gz_ostream> : public ::testing::Test
+class ostream<seqan3::contrib::gz_ostream> : public ::testing::Test
 {
 public:
     static inline std::string compressed
@@ -26,6 +24,6 @@ public:
     };  // Note we zeroed the 10th byte which indicates the OS on which the file was compressed.
 };
 
-using test_types = ::testing::Types<contrib::gz_ostream>;
+using test_types = ::testing::Types<seqan3::contrib::gz_ostream>;
 
-INSTANTIATE_TYPED_TEST_CASE_P(contrib_streams, ostream, test_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(contrib_streams, ostream, test_types, );

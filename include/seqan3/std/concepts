@@ -1,7 +1,7 @@
 // -*- C++ -*-
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -13,10 +13,71 @@
 
 #pragma once
 
-#include <seqan3/core/platform.hpp>
-
-#ifdef __cpp_lib_concepts        // C++20 ranges available
+#if __has_include(<concepts>)
 #include <concepts>
+#endif // __has_include(<concepts>)
+
+#ifdef __cpp_lib_concepts        // C++20 concepts available
+
+namespace std
+{
+inline namespace deprecated
+{
+/*!\brief This should be named default_initializable.
+ * \deprecated Use std::default_initializable instead.
+ */
+template<class T>
+concept default_constructible = default_initializable<T>;
+
+/*!\brief This should be removed.
+ * \deprecated No viable alternative.
+ */
+template <class B>
+concept boolean =
+    movable<std::remove_cvref_t<B>> &&
+    requires(std::remove_reference_t<B> const & b1,
+             std::remove_reference_t<B> const & b2, bool const a)
+    {
+        requires convertible_to<const std::remove_reference_t<B>&, bool>;
+        !b1;      requires convertible_to<decltype(!b1), bool>;
+        b1 && a;  requires same_as<decltype(b1 && a), bool>;
+        b1 || a;  requires same_as<decltype(b1 || a), bool>;
+        b1 && b2; requires same_as<decltype(b1 && b2), bool>;
+        a && b2;  requires same_as<decltype(a && b2), bool>;
+        b1 || b2; requires same_as<decltype(b1 || b2), bool>;
+        a || b2;  requires same_as<decltype(a || b2), bool>;
+        b1 == b2; requires convertible_to<decltype(b1 == b2), bool>;
+        b1 == a;  requires convertible_to<decltype(b1 == a), bool>;
+        a == b2;  requires convertible_to<decltype(a == b2), bool>;
+        b1 != b2; requires convertible_to<decltype(b1 != b2), bool>;
+        b1 != a;  requires convertible_to<decltype(b1 != a), bool>;
+        a != b2;  requires convertible_to<decltype(a != b2), bool>;
+    };
+} // inline namespace std::deprecated
+} // namespace std
+
+namespace std::detail
+{
+/*!\interface   std::detail::weakly_equality_comparable_with <>
+ * \tparam t1   The first type to compare.
+ * \tparam t2   The second type to compare.
+ * \brief       Requires the two operands to be comparable with `==` and `!=` in both directions.
+ * \sa          https://en.cppreference.com/w/cpp/concepts/equality_comparable
+ */
+//!\cond
+template <class T, class U>
+concept weakly_equality_comparable_with =
+    requires(std::remove_reference_t<T> const & t,
+             std::remove_reference_t<U> const & u)
+    {
+        t == u; requires boolean<decltype(t == u)>;
+        t != u; requires boolean<decltype(t != u)>;
+        u == t; requires boolean<decltype(u == t)>;
+        u != t; requires boolean<decltype(u != t)>;
+    };
+//!\endcond
+} // namespace std::detail
+
 #else                         // use range-v3 to emulate
 
 #include <functional>
@@ -214,6 +275,15 @@ template <class T>
 SEQAN3_CONCEPT unsigned_integral = integral<T> && !signed_integral<T>;
 //!\endcond
 
+/*!\interface std::floating_point <>
+ * \brief The concept std::floating_point<T> is satisfied if and only if T is a floating-point type.
+ * \sa https://en.cppreference.com/w/cpp/types/is_floating_point
+ */
+//!\cond
+template <typename t>
+SEQAN3_CONCEPT floating_point = std::is_floating_point_v<t>;
+//!\endcond
+
 /*!\interface std::assignable_from <>
  * \brief The concept `std::assignable_from<LHS, RHS>` specifies that an expression of the type and value category specified
  *        by RHS can be assigned to an lvalue expression whose type is specified by LHS.
@@ -398,7 +468,7 @@ namespace std::detail
  * \tparam t1   The first type to compare.
  * \tparam t2   The second type to compare.
  * \brief       Requires the two operands to be comparable with `==` and `!=` in both directions.
- * \sa          https://en.cppreference.com/w/cpp/concepts/weakly_equality_comparable_with
+ * \sa          https://en.cppreference.com/w/cpp/concepts/equality_comparable
  */
 //!\cond
 template <class T, class U>

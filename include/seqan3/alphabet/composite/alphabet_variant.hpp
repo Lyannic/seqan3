@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -66,11 +66,11 @@ namespace seqan3
  * \ingroup composite
  * \if DEV
  * \tparam ...alternative_types Types of possible values (at least 2); all must model
- *                              seqan3::detail::writable_constexpr_alphabet, not be references and be unique.
+ *                              seqan3::detail::writable_constexpr_alphabet, std::regular and be unique.
  * \implements seqan3::detail::writable_constexpr_alphabet
  * \else
  * \tparam ...alternative_types Types of possible values (at least 2); all must model seqan3::writable_alphabet,
- *                              must not be references and must be unique; all required functions for
+ *                              std::regular and must be unique; all required functions for
  *                              seqan3::writable_alphabet need to be callable in a `constexpr`-context.
  * \endif
  * \implements seqan3::writable_alphabet
@@ -122,7 +122,7 @@ namespace seqan3
 template <typename ...alternative_types>
 //!\cond
     requires (detail::writable_constexpr_alphabet<alternative_types> && ...) &&
-             (!std::is_reference_v<alternative_types> && ...) &&
+             (std::regular<alternative_types> && ...) &&
              (sizeof...(alternative_types) >= 2)
              //TODO same char_type
 //!\endcond
@@ -196,7 +196,7 @@ public:
                  (!std::is_base_of_v<alphabet_variant, alternative_t>) &&
                  (!list_traits::contains<alphabet_variant,
                   detail::transformation_trait_or_t<detail::recursive_required_types<alternative_t>, type_list<>>>) &&
-                 holds_alternative<alternative_t>()
+                 (holds_alternative<alternative_t>())
     //!\endcond
     constexpr alphabet_variant(alternative_t const alternative) noexcept
     {
@@ -327,7 +327,7 @@ public:
     template <typename alternative_t>
     constexpr bool is_alternative() const noexcept
     //!\cond
-        requires holds_alternative<alternative_t>()
+        requires (holds_alternative<alternative_t>())
     //!\endcond
     {
         constexpr size_t index = meta::find_index<alternatives, alternative_t>::value;
@@ -341,7 +341,7 @@ public:
     template <typename alternative_t>
     constexpr alternative_t convert_to() const
     //!\cond
-        requires holds_alternative<alternative_t>()
+        requires (holds_alternative<alternative_t>())
     //!\endcond
     {
         constexpr size_t index = meta::find_index<alternatives, alternative_t>::value;
@@ -354,7 +354,7 @@ public:
     template <typename alternative_t>
     constexpr alternative_t convert_unsafely_to() const noexcept
     //!\cond
-        requires holds_alternative<alternative_t>()
+        requires (holds_alternative<alternative_t>())
     //!\endcond
     {
         constexpr size_t index = meta::find_index<alternatives, alternative_t>::value;
@@ -464,7 +464,7 @@ protected:
      * alternative_types::alphabet_size's.
      *
      */
-    static constexpr std::array partial_sum_sizes = []() constexpr
+    static constexpr std::array<rank_type, sizeof...(alternative_types) + 1> partial_sum_sizes = []() constexpr
     {
         constexpr size_t N = sizeof...(alternative_types) + 1;
 
@@ -517,7 +517,7 @@ protected:
     //!\param alternative The value of a alternative.
     template <size_t index, typename alternative_t>
     //!\cond
-        requires holds_alternative<alternative_t>()
+        requires (holds_alternative<alternative_t>())
     //!\endcond
     static constexpr rank_type rank_by_index_(alternative_t const & alternative) noexcept
     {
@@ -530,7 +530,7 @@ protected:
     //!\param alternative The value of a alternative.
     template <typename alternative_t>
     //!\cond
-        requires holds_alternative<alternative_t>()
+        requires (holds_alternative<alternative_t>())
     //!\endcond
     static constexpr rank_type rank_by_type_(alternative_t const & alternative) noexcept
     {
@@ -545,9 +545,9 @@ protected:
      * conflict will default to the first).
      *
      */
-    static constexpr std::array char_to_rank = []() constexpr
+    static constexpr std::array<rank_type, detail::size_in_values_v<char_type>> char_to_rank = []() constexpr
     {
-        constexpr size_t table_size = 1 << (sizeof(char_type) * 8);
+        constexpr size_t table_size = detail::size_in_values_v<char_type>;
 
         std::array<rank_type, table_size> char_to_rank{};
 

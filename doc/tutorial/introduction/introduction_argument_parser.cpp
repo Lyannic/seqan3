@@ -3,8 +3,6 @@
 #include <seqan3/argument_parser/all.hpp> // for argument_parser
 #include <seqan3/core/debug_stream.hpp>   // for debug_stream
 
-using namespace seqan3;
-
 int main(int argc, char * argv[])
 {
     // Create a buffer for the input.
@@ -18,12 +16,12 @@ int main(int argc, char * argv[])
     {
         parser.parse();
     }
-    catch (seqan3::parser_invalid_argument const & ext)
+    catch (seqan3::argument_parser_error const & ext)
     {
-        debug_stream << "[PARSER ERROR] " << ext.what() << '\n';
+        seqan3::debug_stream << "[PARSER ERROR] " << ext.what() << '\n';
         return 0;
     }
 
-    debug_stream << "The text was: " << input << "\n";
+    seqan3::debug_stream << "The text was: " << input << "\n";
 }
 //! [argparse]

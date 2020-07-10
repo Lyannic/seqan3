@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -25,11 +25,29 @@
 namespace seqan3::detail
 {
 
+/*!\brief Internal class used to expose the actual format interface to write sequence records into the file.
+ * \ingroup sequence_file
+ *
+ * \tparam format_type The type of the format to be exposed.
+ *
+ * \details
+ *
+ * Exposes the protected member function `write_sequence_record` from the given `format_type`, such that the file can
+ * call the proper function for the selected format.
+ */
 template <typename format_type>
 struct sequence_file_output_format_exposer : public format_type
 {
 public:
-    using format_type::write_sequence_record;
+
+    // Can't use `using format_type::write_sequence_record` as it produces a hard failure in the format concept check
+    // for types that do not model the format concept, i.e. don't offer the proper write_sequence_record interface.
+    //!\brief Forwards to the seqan3::sequence_file_output_format::write_sequence_record interface.
+    template <typename ...ts>
+    void write_sequence_record(ts && ...args)
+    {
+        format_type::write_sequence_record(std::forward<ts>(args)...);
+    }
 };
 
 } // namespace seqan3::detail
@@ -49,7 +67,6 @@ namespace seqan3
  */
 //!\cond
 template <typename t>
-
 SEQAN3_CONCEPT sequence_file_output_format = requires (detail::sequence_file_output_format_exposer<t> & v,
                                                        std::ofstream                                  & f,
                                                        sequence_file_output_options                   & options,
@@ -77,17 +94,17 @@ SEQAN3_CONCEPT sequence_file_output_format = requires (detail::sequence_file_out
  *                id_type && id, qual_type && qualities)
  * \brief Write the given fields to the specified stream.
  * \tparam stream_type      Output stream, must satisfy seqan3::output_stream_over with `char`.
- * \tparam seq_type         Type of the seqan3::field::SEQ output; must satisfy std::ranges::output_range
+ * \tparam seq_type         Type of the seqan3::field::seq output; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam id_type          Type of the seqan3::field::ID output; must satisfy std::ranges::output_range
+ * \tparam id_type          Type of the seqan3::field::id output; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam qual_type        Type of the seqan3::field::QUAL output; must satisfy std::ranges::output_range
+ * \tparam qual_type        Type of the seqan3::field::qual output; must satisfy std::ranges::output_range
  * over a seqan3::quality_alphabet.
  * \param[in,out] stream    The output stream to write into.
  * \param[in]     options   File specific options passed to the format.
- * \param[in]     sequence  The data for seqan3::field::SEQ, i.e. the "sequence".
- * \param[in]     id        The data for seqan3::field::ID, e.g. the header line in FastA.
- * \param[in]     qualities The data for seqan3::field::QUAL.
+ * \param[in]     sequence  The data for seqan3::field::seq, i.e. the "sequence".
+ * \param[in]     id        The data for seqan3::field::id, e.g. the header line in FastA.
+ * \param[in]     qualities The data for seqan3::field::qual.
  *
  * \details
  *
@@ -95,7 +112,7 @@ SEQAN3_CONCEPT sequence_file_output_format = requires (detail::sequence_file_out
  *
  *   * The format must also accept std::ignore as parameter for any of the fields, however it shall throw an exception
  * if one of the fields required for writing the format is marked as such. [this shall be checked inside the function]
- *   * The format does not handle seqan3::field::SEQ_QUAL, instead seqan3::sequence_file_output splits it into two views
+ *   * The format does not handle seqan3::field::seq_qual, instead seqan3::sequence_file_output splits it into two views
  *     and passes it to the format as if they were separate.
  */
 /*!\var static inline std::vector<std::string> seqan3::sequence_file_output_format::file_extensions

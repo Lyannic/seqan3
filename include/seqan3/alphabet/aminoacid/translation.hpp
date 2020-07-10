@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ constexpr aa27 translate_triplet(nucl_type const & n1, nucl_type const & n2, nuc
  */
 template <genetic_code gc = genetic_code::CANONICAL, typename tuple_type>
 //!\cond
-    requires std::tuple_size<tuple_type>::value == 3 &&
+    requires (std::tuple_size<tuple_type>::value == 3) &&
              nucleotide_alphabet<std::tuple_element_t<0, tuple_type>> &&
              nucleotide_alphabet<std::tuple_element_t<1, tuple_type>> &&
              nucleotide_alphabet<std::tuple_element_t<2, tuple_type>>
@@ -128,17 +128,17 @@ constexpr aa27 translate_triplet SEQAN3_DEPRECATED_310 (tuple_type const & input
  */
 template <genetic_code gc = genetic_code::CANONICAL, std::ranges::input_range range_type>
 //!\cond
-    requires nucleotide_alphabet<reference_t<std::decay_t<range_type>>>
+    requires nucleotide_alphabet<std::ranges::range_reference_t<std::decay_t<range_type>>>
 //!\endcond
 constexpr aa27 translate_triplet SEQAN3_DEPRECATED_310 (range_type && input_range)
 {
-    auto n1 = begin(input_range);
+    auto n1 = std::ranges::begin(input_range);
     auto n2 = ++n1;
     auto n3 = ++n2;
 
-    assert(n1 != end(input_range));
-    assert(n2 != end(input_range));
-    assert(n3 != end(input_range));
+    assert(n1 != std::ranges::end(input_range));
+    assert(n2 != std::ranges::end(input_range));
+    assert(n3 != std::ranges::end(input_range));
 
     return translate_triplet(*n1, *n2, *n3);
 }
@@ -164,13 +164,13 @@ constexpr aa27 translate_triplet SEQAN3_DEPRECATED_310 (range_type && input_rang
  */
 template <genetic_code gc = genetic_code::CANONICAL, std::ranges::random_access_range rng_t>
 //!\cond
-    requires nucleotide_alphabet<reference_t<std::decay_t<rng_t>>>
+    requires nucleotide_alphabet<std::ranges::range_reference_t<std::decay_t<rng_t>>>
 //!\endcond
 constexpr aa27 translate_triplet SEQAN3_DEPRECATED_310 (rng_t && input_range)
 {
-    assert(input_range.begin() != end(input_range));
-    assert(input_range.begin() + 1 != end(input_range));
-    assert(input_range.begin() + 2 != end(input_range));
+    assert(std::ranges::begin(input_range) != std::ranges::end(input_range));
+    assert(std::ranges::begin(input_range) + 1 != std::ranges::end(input_range));
+    assert(std::ranges::begin(input_range) + 2 != std::ranges::end(input_range));
 
     return translate_triplet(input_range[0], input_range[1], input_range[2]);
 }

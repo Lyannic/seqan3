@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -10,20 +10,18 @@
 
 #include <gtest/gtest.h>
 
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/detail/inherited_iterator_base.hpp>
 
 /* This class is extensively tested by the many views that use it, e.g. views::take_line */
 
-using namespace seqan3;
-
 //! [inherited_iterator_base def]
 
-class skip_odd_numbers_it : public detail::inherited_iterator_base<skip_odd_numbers_it, std::vector<int>::iterator>
+class skip_odd_numbers_it : public seqan3::detail::inherited_iterator_base<skip_odd_numbers_it,
+                                                                           std::vector<int>::iterator>
 {
 private:
     using base_base_t = std::vector<int>::iterator;
-    using base_t      = detail::inherited_iterator_base<skip_odd_numbers_it, std::vector<int>::iterator>;
+    using base_t      = seqan3::detail::inherited_iterator_base<skip_odd_numbers_it, std::vector<int>::iterator>;
 
 public:
     skip_odd_numbers_it() = default;

@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -198,7 +198,7 @@ namespace seqan3
 template <typename ...alternative_types>
 //!\cond
     requires (detail::writable_constexpr_alphabet<alternative_types> && ...) &&
-             (!std::is_reference_v<alternative_types> && ...) &&
+             (std::regular<alternative_types> && ...) &&
              (sizeof...(alternative_types) >= 2)
              //TODO same char_type
 //!\endcond
@@ -208,7 +208,7 @@ template <typename derived_type,
           typename ...component_types>
 //!\cond
     requires (detail::writable_constexpr_semialphabet<component_types> && ...) &&
-             (!std::is_reference_v<component_types> && ...)
+             (std::regular<component_types> && ...)
 //!\endcond
 class alphabet_tuple_base;
 

@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------------------------------
-# Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-# Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+# Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+# Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 # This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 # shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 # -----------------------------------------------------------------------------------------------------
@@ -19,9 +19,13 @@ include (CheckCXXSourceCompiles)
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
 
+option (SEQAN3_TEST_BUILD_OFFLINE "Skip the update step of external projects." OFF)
+
 # ----------------------------------------------------------------------------
 # Paths to folders.
 # ----------------------------------------------------------------------------
+
+find_path (SEQAN3_TEST_INCLUDE_DIR NAMES seqan3/test/tmp_filename.hpp HINTS "${CMAKE_CURRENT_LIST_DIR}/include/")
 
 set (SEQAN3_BENCHMARK_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/benchmark")
 set (SEQAN3_TEST_CLONE_DIR "${PROJECT_BINARY_DIR}/vendor/googletest")
@@ -38,9 +42,9 @@ file(MAKE_DIRECTORY ${SEQAN3_TEST_CLONE_DIR}/googletest/include/)
 # seqan3::test exposes a base set of required flags, includes, definitions and
 # libraries which are in common for **all** seqan3 tests
 add_library (seqan3_test INTERFACE)
-target_compile_options (seqan3_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror" "-DNO_WARN_X86_INTRINSICS")
+target_compile_options (seqan3_test INTERFACE "-pedantic"  "-Wall" "-Wextra" "-Werror")
 target_link_libraries (seqan3_test INTERFACE "seqan3::seqan3" "pthread")
-target_include_directories (seqan3_test INTERFACE "${SEQAN3_CLONE_DIR}/test/include/")
+target_include_directories (seqan3_test INTERFACE "${SEQAN3_TEST_INCLUDE_DIR}")
 add_library (seqan3::test ALIAS seqan3_test)
 
 # seqan3::test::performance specifies required flags, includes and libraries
@@ -183,7 +187,7 @@ macro (seqan3_require_benchmark)
         SOURCE_DIR "${SEQAN3_BENCHMARK_CLONE_DIR}"
         CMAKE_ARGS "${gbenchmark_project_args}"
         BUILD_BYPRODUCTS "${gbenchmark_path}"
-        UPDATE_DISCONNECTED yes
+        UPDATE_DISCONNECTED ${SEQAN3_TEST_BUILD_OFFLINE}
     )
     unset (gbenchmark_project_args)
 
@@ -223,11 +227,11 @@ macro (seqan3_require_test)
         # we currently have warnings that were introduced in
         # 03867b5389516a0f185af52672cf5472fa0c159c, which are still available
         # in "release-1.8.1", see https://github.com/google/googletest/issues/1419
-        GIT_TAG "52f8183e7f3620cf03f321a2624eb0d4f7649f4c"
+        GIT_TAG "release-1.10.0"
         SOURCE_DIR "${SEQAN3_TEST_CLONE_DIR}"
         CMAKE_ARGS "${gtest_project_args}"
         BUILD_BYPRODUCTS "${gtest_main_path}" "${gtest_path}"
-        UPDATE_DISCONNECTED yes
+        UPDATE_DISCONNECTED ${SEQAN3_TEST_BUILD_OFFLINE}
     )
     unset (gtest_project_args)
 

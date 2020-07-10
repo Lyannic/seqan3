@@ -75,19 +75,25 @@ mkdir source
 git clone --recurse-submodules https://github.com/seqan/seqan3.git
 ```
 
-The directory should now look like this:
+The output of the command ``` tree -L 2 ``` should now look like this:
 ```
-tutorial
-├── source
+.
 ├── build
-└── seqan3
-    ├── LICENSE
-    ├── README.md
-    ├── build_system
-    ├── doc
-    ├── include
-    ├── submodules
-    └── test
+├── seqan3
+│   ├── build_system
+│   ├── CHANGELOG.md
+│   ├── CMakeLists.txt
+│   ├── CODE_OF_CONDUCT.md
+│   ├── CONTRIBUTING.md
+│   ├── doc
+│   ├── include
+│   ├── LICENSE.md
+│   ├── README.md
+│   ├── submodules
+│   └── test
+└── source
+
+8 directories, 6 files
 ```
 
 # Compiling and Running
@@ -104,8 +110,7 @@ To compile it we first create a `CMakeLists.txt` file in the `source` directory:
 cmake_minimum_required (VERSION 3.4)
 project (seqan3_tutorial CXX)
 
-set(SeqAn3_DIR "${CMAKE_SOURCE_DIR}/../seqan3/build_system")
-find_package (SeqAn3 REQUIRED)
+find_package (SeqAn3 3.0.0 REQUIRED HINTS "${CMAKE_SOURCE_DIR}/../seqan3/build_system")
 
 add_executable (hello_world hello_world.cpp)
 
@@ -121,6 +126,7 @@ tutorial
     └── hello_world.cpp
 ├── build
 └── seqan3
+    ├── CMakeLists.txt
     ├── LICENSE
     ...
 ```
@@ -157,8 +163,7 @@ For example, after adding `another_program.cpp` your `CMakeLists.txt` may look l
 cmake_minimum_required (VERSION 3.4)
 project (seqan3_tutorial CXX)
 
-set(SeqAn3_DIR "${CMAKE_SOURCE_DIR}/../seqan3/build_system")
-find_package (SeqAn3 REQUIRED)
+find_package (SeqAn3 3.0.0 REQUIRED HINTS "${CMAKE_SOURCE_DIR}/../seqan3/build_system")
 
 add_executable (hello_world hello_world.cpp)
 add_executable (another_program another_program.cpp)

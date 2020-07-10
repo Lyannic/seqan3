@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -14,6 +14,7 @@
 
 #include <tuple>
 
+#include <seqan3/alignment/configuration/align_config_edit.hpp>
 #include <seqan3/alignment/pairwise/detail/concept.hpp>
 #include <seqan3/alignment/pairwise/edit_distance_unbanded.hpp>
 
@@ -37,6 +38,14 @@ namespace seqan3::detail
 template <typename config_t, typename traits_t>
 class edit_distance_algorithm
 {
+private:
+    //!\brief The configuration traits for the selected alignment algorithm.
+    using configuration_traits_type = alignment_configuration_traits<config_t>;
+    //!\brief The configured alignment result type.
+    using alignment_result_type = typename configuration_traits_type::alignment_result_type;
+
+    static_assert(!std::same_as<alignment_result_type, empty_type>, "Alignment result type was not configured.");
+
 public:
     /*!\name Constructors, destructor and assignment
      * \{
@@ -66,32 +75,33 @@ public:
     /*!\brief Invokes the alignment computation for every indexed sequence pair contained in the given range.
      * \tparam indexed_sequence_pairs_t The type of the range of the indexed sequence pairs; must model
      *                                  seqan3::detail::indexed_sequence_pairs.
+     * \tparam callback_t The type of the callback function that is called with the alignment result; must model
+     *                    std::invocable accepting one argument of type seqan3::alignment_result.
      *
      * \param[in] indexed_sequence_pairs The indexed sequence pairs to align.
+     * \param[in] callback The callback function to be invoked with the alignment result; must model
+     *                     std::invocable with the respective seqan3::alignment_result type.
      *
      * \returns A std::vector over seqan3::alignment_result.
      *
      * \details
      *
-     * Computes for each contained sequence pair the respective alignment and returns all alignment results in a
-     * vector.
+     * Computes for each contained sequence pair the respective alignment and invokes the given callback for each
+     * alignment result.
      */
-    template <indexed_sequence_pair_range indexed_sequence_pairs_t>
-    constexpr auto operator()(indexed_sequence_pairs_t && indexed_sequence_pairs)
+    template <indexed_sequence_pair_range indexed_sequence_pairs_t, typename callback_t>
+    //!\cond
+        requires std::invocable<callback_t, alignment_result_type>
+    //!\endcond
+    constexpr void operator()(indexed_sequence_pairs_t && indexed_sequence_pairs, callback_t && callback)
     {
-        using indexed_sequence_pair_t = std::ranges::range_value_t<indexed_sequence_pairs_t>; // The value type.
-        using sequence_pair_t = std::tuple_element_t<0, indexed_sequence_pair_t>; // The sequence pair type.
-        using sequence1_t = std::remove_reference_t<std::tuple_element_t<0, sequence_pair_t>>;
-        using sequence2_t = std::remove_reference_t<std::tuple_element_t<1, sequence_pair_t>>;
-        using alignment_result_value_t = typename align_result_selector<sequence1_t, sequence2_t, config_t>::type;
-
         using std::get;
 
-        std::vector<alignment_result<alignment_result_value_t>> result_vector{};  // Stores the results.
         for (auto && [sequence_pair, index] : indexed_sequence_pairs)
-            result_vector.push_back(compute_single_pair(index, get<0>(sequence_pair), get<1>(sequence_pair)));
-
-        return result_vector;
+            compute_single_pair(index,
+                                get<0>(sequence_pair),
+                                get<1>(sequence_pair),
+                                std::forward<callback_t>(callback));
     }
 private:
 
@@ -100,19 +110,24 @@ private:
      *                           std::ranges::forward_range.
      * \tparam    second_range_t The type of the second sequence (or packed sequences); must model
      *                           std::ranges::forward_range.
+     * \tparam        callback_t The callback to call on the computed alignment result.
      * \param[in] idx            The index of the current sequence pair.
      * \param[in] first_range    The first sequence (or packed sequences).
      * \param[in] second_range   The second sequence (or packed sequences).
+     * \param[in] callback       The callback to invoke on an alignment result.
      */
-    template <std::ranges::forward_range first_range_t, std::ranges::forward_range second_range_t>
-    constexpr auto compute_single_pair(size_t const idx, first_range_t && first_range, second_range_t && second_range)
+    template <std::ranges::forward_range first_range_t, std::ranges::forward_range second_range_t, typename callback_t>
+    constexpr void compute_single_pair(size_t const idx,
+                                       first_range_t && first_range,
+                                       second_range_t && second_range,
+                                       callback_t && callback)
     {
         using edit_traits = default_edit_distance_trait_type<first_range_t,
                                                              second_range_t,
                                                              config_t,
                                                              typename traits_t::is_semi_global_type>;
         edit_distance_unbanded algo{first_range, second_range, *cfg_ptr, edit_traits{}};
-        return algo(idx);
+        algo(idx, callback);
     }
 
     //!\brief The alignment configuration stored on the heap.

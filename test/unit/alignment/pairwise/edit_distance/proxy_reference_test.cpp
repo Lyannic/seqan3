@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -38,8 +38,8 @@ using reference_types = ::testing::Types<int &,
 using proxy_reference_types = ::testing::Types<proxy_reference<int>,
                                                proxy_reference<int const>>;
 
-TYPED_TEST_CASE(reference_test, reference_types);
-TYPED_TEST_CASE(proxy_reference_test, proxy_reference_types);
+TYPED_TEST_SUITE(reference_test, reference_types, );
+TYPED_TEST_SUITE(proxy_reference_test, proxy_reference_types, );
 
 TYPED_TEST(reference_test, construct_with_lvalue)
 {

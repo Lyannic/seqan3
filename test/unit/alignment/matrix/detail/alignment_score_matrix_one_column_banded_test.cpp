@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -16,17 +16,15 @@
 #include "simulated_alignment_test_template.hpp"
 #include "../../../range/iterator_test_template.hpp"
 
-using namespace seqan3;
-
 template <typename t>
 struct alignment_score_matrix_one_column_banded_test
 {
-    using matrix_t = detail::alignment_score_matrix_one_column_banded<t>;
+    using matrix_t = seqan3::detail::alignment_score_matrix_one_column_banded<t>;
     using score_type = t;
 
     alignment_score_matrix_one_column_banded_test() = default;
     alignment_score_matrix_one_column_banded_test(std::string f, std::string s) :
-        matrix{matrix_t{f, s, static_band{lower_bound{-2}, upper_bound{2}}, -100}}
+        matrix{matrix_t{f, s, seqan3::static_band{seqan3::lower_bound{-2}, seqan3::upper_bound{2}}, -100}}
     {}
 
     // Banded matrix. We write only partial columns to the result.
@@ -42,15 +40,15 @@ struct alignment_score_matrix_one_column_banded_test
     size_t last_init_column = 2;
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(one_column_banded,
-                              simulated_alignment_test,
-                              alignment_score_matrix_one_column_banded_test<int32_t>);
+INSTANTIATE_TYPED_TEST_SUITE_P(one_column_banded,
+                               simulated_alignment_test,
+                               alignment_score_matrix_one_column_banded_test<int32_t>, );
 
-using test_type = std::pair<detail::alignment_score_matrix_one_column_banded<int32_t>, std::true_type>;
+using test_type = std::pair<seqan3::detail::alignment_score_matrix_one_column_banded<int32_t>, std::true_type>;
 
-INSTANTIATE_TYPED_TEST_CASE_P(one_column_banded,
-                              alignment_matrix_base_test,
-                              test_type);
+INSTANTIATE_TYPED_TEST_SUITE_P(one_column_banded,
+                               alignment_matrix_base_test,
+                               test_type, );
 
 //-----------------------------------------------------------------------------
 // Test outer iterator
@@ -76,9 +74,9 @@ struct iterator_fixture<outer_iterator> : alignment_matrix_base_test<test_type>
     }
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(banded_score_matrix_outer_iterator,
-                              iterator_fixture,
-                              outer_iterator);
+INSTANTIATE_TYPED_TEST_SUITE_P(banded_score_matrix_outer_iterator,
+                               iterator_fixture,
+                               outer_iterator, );
 
 //-----------------------------------------------------------------------------
 // Test inner iterator
@@ -104,6 +102,6 @@ struct iterator_fixture<inner_iterator> : alignment_matrix_base_test<test_type>
     }
 };
 
-INSTANTIATE_TYPED_TEST_CASE_P(banded_score_matrix_inner_iterator,
-                              iterator_fixture,
-                              inner_iterator);
+INSTANTIATE_TYPED_TEST_SUITE_P(banded_score_matrix_inner_iterator,
+                               iterator_fixture,
+                               inner_iterator, );

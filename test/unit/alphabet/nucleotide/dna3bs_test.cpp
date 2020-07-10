@@ -1,11 +1,10 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
-#include <seqan3/alphabet/concept.hpp>
 #include <seqan3/alphabet/nucleotide/dna3bs.hpp>
 #include <seqan3/core/char_operations/predicate.hpp>
 
@@ -14,10 +13,10 @@
 #include "../semi_alphabet_constexpr_test_template.hpp"
 #include "../semi_alphabet_test_template.hpp"
 
-INSTANTIATE_TYPED_TEST_CASE_P(dna3bs, alphabet_, seqan3::dna3bs);
-INSTANTIATE_TYPED_TEST_CASE_P(dna3bs, semi_alphabet_test, seqan3::dna3bs);
-INSTANTIATE_TYPED_TEST_CASE_P(dna3bs, alphabet_constexpr, seqan3::dna3bs);
-INSTANTIATE_TYPED_TEST_CASE_P(dna3bs, semi_alphabet_constexpr, seqan3::dna3bs);
+INSTANTIATE_TYPED_TEST_SUITE_P(dna3bs, alphabet_, seqan3::dna3bs, );
+INSTANTIATE_TYPED_TEST_SUITE_P(dna3bs, semi_alphabet_test, seqan3::dna3bs, );
+INSTANTIATE_TYPED_TEST_SUITE_P(dna3bs, alphabet_constexpr, seqan3::dna3bs, );
+INSTANTIATE_TYPED_TEST_SUITE_P(dna3bs, semi_alphabet_constexpr, seqan3::dna3bs, );
 
 using seqan3::operator""_dna3bs;
 

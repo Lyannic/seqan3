@@ -56,43 +56,24 @@ with the only difference that **the header is mandatory**.
 
 # Alignment file fields
 
-The Alignment file abstraction supports writing the following fields:
-
-1. field::SEQ
-2. field::ID
-3. field::OFFSET
-4. field::REF_SEQ
-5. field::REF_ID
-6. field::REF_OFFSET
-7. field::ALIGNMENT
-8. field::MAPQ
-9. field::FLAG
-10. field::QUAL
-11. field::MATE
-12. field::TAGS
-13. field::EVALUE
-14. field::BIT_SCORE
-
-There is an additional field called seqan3::field::HEADER_PTR.
-It is used to transfer header information from seqan3::alignment_file_input to seqan3::alignment_file_output,
-but you needn't deal with this field manually.
+\copydetails seqan3::alignment_file_input::field_ids
 
 Note that some of the fields are specific to the SAM format, while some are specific to BLAST.
 To make things clearer, here is the table of SAM columns connected to the corresponding alignment file field:
 
 | #  | SAM Column ID |  FIELD name                                                                       |
 |:--:|:--------------|:----------------------------------------------------------------------------------|
-| 1  | QNAME         | seqan3::field::ID                                                                 |
-| 2  | FLAG          | seqan3::field::FLAG                                                               |
-| 3  | RNAME         | seqan3::field::REF_ID                                                             |
-| 4  | POS           | seqan3::field::REF_OFFSET                                                         |
-| 5  | MAPQ          | seqan3::field::MAPQ                                                               |
-| 6  | CIGAR         | implicitly stored in seqan3::field::ALIGNMENT or directly in seqan3::field::CIGAR |
-| 7  | RNEXT         | seqan3::field::MATE (tuple pos 0)                                                 |
-| 8  | PNEXT         | seqan3::field::MATE (tuple pos 1)                                                 |
-| 9  | TLEN          | seqan3::field::MATE (tuple pos 2)                                                 |
-| 10 | SEQ           | seqan3::field::SEQ                                                                |
-| 11 | QUAL          | seqan3::field::QUAL                                                               |
+| 1  | QNAME         | seqan3::field::id                                                                 |
+| 2  | FLAG          | seqan3::field::flag                                                               |
+| 3  | RNAME         | seqan3::field::ref_id                                                             |
+| 4  | POS           | seqan3::field::ref_offset                                                         |
+| 5  | MAPQ          | seqan3::field::mapq                                                               |
+| 6  | CIGAR         | implicitly stored in seqan3::field::alignment or directly in seqan3::field::cigar |
+| 7  | RNEXT         | seqan3::field::mate (tuple pos 0)                                                 |
+| 8  | PNEXT         | seqan3::field::mate (tuple pos 1)                                                 |
+| 9  | TLEN          | seqan3::field::mate (tuple pos 2)                                                 |
+| 10 | SEQ           | seqan3::field::seq                                                                |
+| 11 | QUAL          | seqan3::field::qual                                                               |
 
 ## File extensions
 
@@ -144,12 +125,12 @@ so the seqan3::record object has three tuple elements that are decomposed using 
 
 Note that this is possible for all SeqAn file objects.
 
-\assignment{Exercise: Accumulating mapping qualities}
+\assignment{Assignment 1: Accumulating mapping qualities}
 
 Let's assume we want to compute the average mapping quality of a SAM file.
 
 For this purpose, write a small program that
-    * only reads the mapping quality (field::MAPQ) out of a SAM file and
+    * only reads the mapping quality (field::mapq) out of a SAM file and
     * computes the average of all qualities.
 
 Use the following file to test your program:
@@ -207,10 +188,16 @@ If you want to read up more about cigar strings,
 take a look at the [SAM specifications](https://samtools.github.io/hts-specs/SAMv1.pdf)
 or the [SAMtools paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2723002/).
 
-## Completing reference information
+## Reading the CIGAR string
 
-In SeqAn the conversion from a CIGAR string to an alignment (two *aligned_sequences*) is done automatically for you.
-You can just pass the alignment object to the alignment file:
+By default, the `seqan3::alignment_file_input` will always read the `seqan3::field::cigar` and store it
+into a `std::vector<seqan3::cigar>`:
+
+\snippet doc/tutorial/alignment_file/alignment_file_read_cigar.cpp code
+
+## Reading the CIGAR information into an actual alignment
+
+In SeqAn, the conversion from a CIGAR string to an alignment (two *aligned_sequences*) is done automatically for you. You can access it by querying `seqan3::field::alignment` from the record:
 
 \snippet doc/tutorial/alignment_file/alignment_file_snippets.cpp main
 \snippet doc/tutorial/alignment_file/alignment_file_snippets.cpp alignments_without_ref
@@ -229,7 +216,7 @@ You can pass reference ids and reference sequences as additional constructor par
 \snippet doc/tutorial/alignment_file/alignment_file_snippets.cpp alignments_with_ref
 \snippet doc/tutorial/alignment_file/alignment_file_snippets.cpp main_end
 
-\assignment{Exercise: Combining sequence and alignment files}
+\assignment{Assignment 2: Combining sequence and alignment files}
 
 Read in the following reference sequence FASTA file (see the sequence file tutorial if you need a remainder):
 
@@ -246,15 +233,15 @@ With those information do the following:
   * For the resulting alignments, print which read was mapped against with reference id and
     the number of seqan3::gap's in each sequence (aligned reference and read sequence).
 
-\note reference ids (field::REF_ID) are given as an index of type `std::optional<int32_t>`
+\note reference ids (field::ref_id) are given as an index of type `std::optional<int32_t>`
       that denote the position of the reference id in the `ref_ids` vector passed to the alignment file.
 
 Your program should print the following:
 
 ```
-r001 mapped against 0 with 2 gaps in the read sequence and 2 gaps in the reference sequence.
+r001 mapped against 0 with 1 gaps in the read sequence and 2 gaps in the reference sequence.
 r003 mapped against 0 with 0 gaps in the read sequence and 0 gaps in the reference sequence.
-r004 mapped against 1 with 0 gaps in the read sequence and 0 gaps in the reference sequence.
+r004 mapped against 1 with 14 gaps in the read sequence and 0 gaps in the reference sequence.
 ```
 
 \endassignment
@@ -264,13 +251,6 @@ r004 mapped against 1 with 0 gaps in the read sequence and 0 gaps in the referen
 \snippet doc/tutorial/alignment_file/alignment_file_solution2.cpp solution
 
 \endsolution
-
-## Reading the CIGAR string
-
-If you are accustomed to the raw CIGAR information, we also provide reading the cigar information into a
-`std::vector<seqan3::cigar>` if you specify the `seqan3::field::CIGAR`.
-
-\snippet doc/tutorial/alignment_file/alignment_file_read_cigar.cpp code
 
 # Writing alignment files
 
@@ -291,7 +271,7 @@ For this purpose, you can also select specific fields by giving an additional se
 Note that this only works because in the SAM format **all fields are optional**.
 So if we provide less fields when writing, default values are printed.
 
-\assignment{Exercise: Writing id and sequence information}
+\assignment{Assignment 3: Writing id and sequence information}
 
 Write a small program that writes the following read ids + sequences:
 

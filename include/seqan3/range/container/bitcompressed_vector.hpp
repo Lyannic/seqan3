@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -18,8 +18,6 @@
 
 #include <seqan3/alphabet/detail/alphabet_proxy.hpp>
 #include <seqan3/core/concept/cereal.hpp>
-#include <seqan3/core/type_traits/all.hpp>
-#include <seqan3/range/shortcuts.hpp>
 #include <seqan3/range/detail/random_access_iterator.hpp>
 #include <seqan3/range/views/to_char.hpp>
 #include <seqan3/range/views/to_rank.hpp>
@@ -32,7 +30,7 @@ namespace seqan3
 {
 
 /*!\brief A space-optimised version of std::vector that compresses multiple letters into a single byte.
- * \tparam alphabet_type The value type of the container, must satisfy seqan3::alphabet and not be `&`.
+ * \tparam alphabet_type The value type of the container, must satisfy seqan3::writable_semialphabet and std::regular.
  * \implements seqan3::reservible_container
  * \implements seqan3::cerealisable
  * \ingroup container
@@ -59,9 +57,9 @@ namespace seqan3
  * threads at the same time **is not safe** and will lead to corruption if both values are stored in the same
  * 64bit-block, i.e. if the distance between `i` and `j` is smaller than 64 / alphabet_size.
  */
-template <alphabet alphabet_type>
+template <writable_semialphabet alphabet_type>
 //!\cond
-    requires std::is_same_v<alphabet_type, std::remove_reference_t<alphabet_type>>
+    requires std::regular<alphabet_type>
 //!\endcond
 class bitcompressed_vector
 {
@@ -87,13 +85,13 @@ private:
         //!\brief Befriend the base type so it can call our #on_update().
         friend base_t;
 
-        //!\brief The proxy of the underlying data type; wrapped in semiregular_t, because it isn't semiregular itself.
-        ranges::semiregular_t<reference_t<data_type>> internal_proxy;
+        //!\brief The proxy of the underlying data type.
+        std::ranges::range_reference_t<data_type> internal_proxy;
 
         //!\brief Update the sdsl-proxy.
         constexpr void on_update() noexcept
         {
-            internal_proxy.get() = static_cast<base_t &>(*this).to_rank();
+            internal_proxy = static_cast<base_t &>(*this).to_rank();
         }
 
     public:
@@ -103,7 +101,8 @@ private:
         /*!\name Constructors, destructor and assignment
          * \{
          */
-        constexpr reference_proxy_type()                                         noexcept = default; //!< Defaulted.
+        //!\brief Deleted, because using this proxy without a parent would be undefined behaviour.
+        reference_proxy_type() = delete;
         constexpr reference_proxy_type(reference_proxy_type const &)             noexcept = default; //!< Defaulted.
         constexpr reference_proxy_type(reference_proxy_type &&)                  noexcept = default; //!< Defaulted.
         constexpr reference_proxy_type & operator=(reference_proxy_type const &) noexcept = default; //!< Defaulted.
@@ -111,7 +110,7 @@ private:
         ~reference_proxy_type()                                                  noexcept = default; //!< Defaulted.
 
         //!\brief Initialise from internal proxy type.
-        reference_proxy_type(reference_t<data_type> const & internal) noexcept :
+        reference_proxy_type(std::ranges::range_reference_t<data_type> const & internal) noexcept :
             internal_proxy{internal}
         {
             static_cast<base_t &>(*this).assign_rank(internal);
@@ -123,7 +122,7 @@ private:
     //!\cond
     //NOTE(h-2): it is entirely unclear to me why we need this
     template <typename t>
-        requires std::is_same_v<value_type_t<remove_cvref_t<t>>, alphabet_type>
+        requires std::is_same_v<std::ranges::range_value_t<remove_cvref_t<t>>, alphabet_type>
     static constexpr bool has_same_value_type_v = true;
     //!\endcond
 
@@ -142,9 +141,9 @@ public:
     //!\brief The const_iterator type of this container (a random access iterator).
     using const_iterator    = detail::random_access_iterator<bitcompressed_vector const>;
     //!\brief A signed integer type (usually std::ptrdiff_t)
-    using difference_type   = difference_type_t<data_type>;
+    using difference_type   = std::ranges::range_difference_t<data_type>;
     //!\brief An unsigned integer type (usually std::size_t)
-    using size_type         = size_type_t<data_type>;
+    using size_type         = std::ranges::range_size_t<data_type>;
     //!\}
 
     //!\cond
@@ -164,7 +163,7 @@ public:
 
     /*!\brief Construct from a different range.
      * \tparam other_range_t The type of range to construct from; must satisfy std::ranges::input_range and
-     *                       std::common_reference_with<value_type_t<other_range_t>, value_type>.
+     *                       std::common_reference_with<std::ranges::range_value_t<other_range_t>, value_type>.
      * \param[in]      range The sequences to construct/assign from.
      *
      * ### Complexity
@@ -180,7 +179,7 @@ public:
         requires has_same_value_type_v<other_range_t>
     //!\endcond
     explicit bitcompressed_vector(other_range_t && range) :
-        bitcompressed_vector{seqan3::begin(range), seqan3::end(range)}
+        bitcompressed_vector{std::ranges::begin(range), std::ranges::end(range)}
     {}
 
     /*!\brief Construct with `count` times `value`.
@@ -201,7 +200,7 @@ public:
 
     /*!\brief Construct from pair of iterators.
      * \tparam begin_iterator_type Must model std::forward_iterator and
-     *                             std::common_reference_with<value_type_t<begin_iterator_type>, value_type>.
+     *                             std::common_reference_with<std::iter_value_t<begin_iterator_type>, value_type>.
      * \tparam   end_iterator_type Must model std::sentinel_for.
      * \param[in]         begin_it Begin of range to construct/assign from.
      * \param[in]           end_it End of range to construct/assign from.
@@ -218,7 +217,7 @@ public:
     bitcompressed_vector(begin_iterator_type begin_it, end_iterator_type end_it)
     //!\cond
         requires std::sentinel_for<end_iterator_type, begin_iterator_type> &&
-                 std::common_reference_with<value_type_t<begin_iterator_type>, value_type>
+                 std::common_reference_with<std::iter_value_t<begin_iterator_type>, value_type>
     //!\endcond
     {
         insert(cend(), begin_it, end_it);
@@ -258,7 +257,7 @@ public:
 
     /*!\brief Assign from a different range.
      * \tparam other_range_t The type of range to be inserted; must satisfy std::ranges::input_range and
-     *                       std::common_reference_with<value_type_t<other_range_t>, value_type>.
+     *                       std::common_reference_with<std::ranges::range_value_t<other_range_t>, value_type>.
      * \param[in]      range The sequences to construct/assign from.
      *
      * ### Complexity
@@ -272,7 +271,7 @@ public:
     template <std::ranges::input_range other_range_t>
     void assign(other_range_t && range)
     //!\cond
-        requires std::common_reference_with<value_type_t<other_range_t>, value_type>
+        requires std::common_reference_with<std::ranges::range_value_t<other_range_t>, value_type>
     //!\endcond
     {
         bitcompressed_vector rhs{std::forward<other_range_t>(range)};
@@ -299,7 +298,7 @@ public:
 
     /*!\brief Assign from pair of iterators.
      * \tparam begin_iterator_type Must satisfy std::forward_iterator and
-     *                             std::common_reference_with<value_type_t<begin_iterator_type>, value_type>.
+     *                             std::common_reference_with<std::iter_value_t<begin_iterator_type>, value_type>.
      * \tparam   end_iterator_type Must satisfy std::sentinel_for.
      * \param[in]         begin_it Begin of range to construct/assign from.
      * \param[in]           end_it End of range to construct/assign from.
@@ -316,7 +315,7 @@ public:
     void assign(begin_iterator_type begin_it, end_iterator_type end_it)
     //!\cond
         requires std::sentinel_for<end_iterator_type, begin_iterator_type> &&
-                 std::common_reference_with<value_type_t<begin_iterator_type>, value_type>
+                 std::common_reference_with<std::iter_value_t<begin_iterator_type>, value_type>
     //!\endcond
     {
         bitcompressed_vector rhs{begin_it, end_it};
@@ -731,7 +730,7 @@ public:
 
     /*!\brief Inserts elements from range `[begin_it, end_it)` before position in the container.
      * \tparam begin_iterator_type Must satisfy std::forward_iterator and
-     *                             std::common_reference_with<value_type_t<begin_iterator_type>, value_type>.
+     *                             std::common_reference_with<std::iter_value_t<begin_iterator_type>, value_type>.
      * \tparam   end_iterator_type Must satisfy std::sentinel_for.
      * \param[in]              pos Iterator before which the content will be inserted. `pos` may be the end() iterator.
      * \param[in]         begin_it Begin of range to construct/assign from.
@@ -757,7 +756,7 @@ public:
     iterator insert(const_iterator pos, begin_iterator_type begin_it, end_iterator_type end_it)
     //!\cond
         requires std::sentinel_for<end_iterator_type, begin_iterator_type> &&
-                 std::common_reference_with<value_type_t<begin_iterator_type>, value_type>
+                 std::common_reference_with<std::iter_value_t<begin_iterator_type>, value_type>
     //!\endcond
     {
         auto const pos_as_num = std::distance(cbegin(), pos);
@@ -765,7 +764,7 @@ public:
         auto v = std::ranges::subrange<begin_iterator_type, end_iterator_type>{begin_it, end_it}
                | views::convert<value_type>
                | views::to_rank;
-        data.insert(data.begin() + pos_as_num, seqan3::begin(v), seqan3::end(v));
+        data.insert(data.begin() + pos_as_num, std::ranges::begin(v), std::ranges::end(v));
 
         return begin() + pos_as_num;
     }

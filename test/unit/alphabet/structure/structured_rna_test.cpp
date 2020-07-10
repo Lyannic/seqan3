@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -20,21 +20,19 @@
 #include "../semi_alphabet_test_template.hpp"
 #include "../composite/alphabet_tuple_base_test_template.hpp"
 
-using namespace seqan3;
-
 template <typename rna_type, typename structure_type>
-class alphabet_tuple_base_test<structured_rna<rna_type, structure_type>> : public ::testing::Test
+class alphabet_tuple_base_test<seqan3::structured_rna<rna_type, structure_type>> : public ::testing::Test
 {
 public:
-    using T = structured_rna<rna_type, structure_type>;
+    using T = seqan3::structured_rna<rna_type, structure_type>;
 
-    using dna_type = std::conditional_t<std::is_same_v<rna_type, rna4>, dna4, dna5>;
+    using dna_type = std::conditional_t<std::is_same_v<rna_type, seqan3::rna4>, seqan3::dna4, seqan3::dna5>;
 
     T instance = T{value_1(), value_2()};
     T zero_instance = T{decltype(value_1()){}, decltype(value_2()){}};
     size_t tup_size{2};
 
-    // structured_rna<rna_type, structure_type>
+    // seqan3::structured_rna<rna_type, structure_type>
     // -------------------------------------------------------------------------
     rna_type value_1()
     {
@@ -60,10 +58,11 @@ public:
     }
 };
 
-using structured_rna_types = ::testing::Types<structured_rna<rna5, dot_bracket3>, structured_rna<rna4, wuss51>>;
+using structured_rna_types = ::testing::Types<seqan3::structured_rna<seqan3::rna5, seqan3::dot_bracket3>,
+                                              seqan3::structured_rna<seqan3::rna4, seqan3::wuss51>>;
 
-INSTANTIATE_TYPED_TEST_CASE_P(structured_rna, alphabet_, structured_rna_types);
-INSTANTIATE_TYPED_TEST_CASE_P(structured_rna, semi_alphabet_test, structured_rna_types);
-INSTANTIATE_TYPED_TEST_CASE_P(structured_rna, alphabet_constexpr, structured_rna_types);
-INSTANTIATE_TYPED_TEST_CASE_P(structured_rna, semi_alphabet_constexpr, structured_rna_types);
-INSTANTIATE_TYPED_TEST_CASE_P(structured_rna, alphabet_tuple_base_test, structured_rna_types);
+INSTANTIATE_TYPED_TEST_SUITE_P(structured_rna, alphabet_, structured_rna_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(structured_rna, semi_alphabet_test, structured_rna_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(structured_rna, alphabet_constexpr, structured_rna_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(structured_rna, semi_alphabet_constexpr, structured_rna_types, );
+INSTANTIATE_TYPED_TEST_SUITE_P(structured_rna, alphabet_tuple_base_test, structured_rna_types, );

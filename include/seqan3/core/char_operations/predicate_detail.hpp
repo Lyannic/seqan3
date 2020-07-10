@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -21,7 +21,7 @@
 #include <seqan3/std/concepts>
 
 #include <seqan3/alphabet/concept.hpp>
-#include <seqan3/core/detail/reflection.hpp>
+#include <seqan3/core/detail/type_inspection.hpp>
 #include <seqan3/core/type_traits/basic.hpp>
 
 namespace seqan3::detail
@@ -68,21 +68,21 @@ public:
 // condition_message_v
 // ----------------------------------------------------------------------------
 
-/*!\brief Defines a compound seqan3::small_string consisting of all given conditions separated by the
- *        operator-name `op`.
+/*!\brief Defines a compound std::string consisting of all given conditions separated by the operator-name `op`.
  * \ingroup stream
+ *
  * \tparam op               non-type template parameter specifying the separator character, e.g. '|'.
  * \tparam condition_head_t The first condition type in the message. Ensures that there is at least one type.
  * \tparam condition_ts     Remaining list of conditions separated by `op`.
  * \relates seqan3::detail::char_predicate
  */
 template <char op, typename condition_head_t, typename ...condition_ts>
-inline small_string constexpr condition_message_v
+inline const std::string condition_message_v
 {
-    small_string{"("} +
+    std::string{"("} +
     (condition_head_t::msg + ... +
-        (small_string{" "} + small_string{{op, op, '\0'}} + small_string{" "} + condition_ts::msg)) +
-    small_string{")"}
+        (std::string{" "} + std::string{{op, op}} + std::string{" "} + condition_ts::msg)) +
+    std::string{")"}
 };
 
 // ----------------------------------------------------------------------------
@@ -91,7 +91,7 @@ inline small_string constexpr condition_message_v
 
 //!\cond
 template <typename condition_t>
-class char_predicate_base;
+struct char_predicate_base;
 //!\endcond
 
 /*!\interface seqan3::detail::char_predicate <>
@@ -101,7 +101,7 @@ class char_predicate_base;
  * \details
  *
  * An object of the type must be invocable with a std::integral type and supply a static constexpr `msg` member of type
- * seqan3::small_string.
+ * std::string.
  */
 //!\cond
 template <typename condition_t>
@@ -113,8 +113,8 @@ SEQAN3_CONCEPT char_predicate = requires
 
     std::remove_reference_t<condition_t>::msg;
 
-    //The msg type can be added with a small_string.
-    { small_string<0>{} + std::remove_reference_t<condition_t>::msg } ->
+    //The msg type can be added with a std::string.
+    { std::string{} + std::remove_reference_t<condition_t>::msg } ->
         decltype(std::remove_reference_t<condition_t>::msg);
 };
 //!\endcond
@@ -139,14 +139,13 @@ SEQAN3_CONCEPT char_predicate = requires
  */
 //!\}
 
-
 // ----------------------------------------------------------------------------
 // char_predicate
 // ----------------------------------------------------------------------------
 
 //!\cond
 template <char_predicate... condition_ts>
-    requires sizeof...(condition_ts) >= 2
+    requires (sizeof...(condition_ts) >= 2)
 struct char_predicate_combiner;
 
 template <char_predicate condition_t>
@@ -190,7 +189,7 @@ struct char_predicate_base
     template <std::integral value_t>
     constexpr bool operator()(value_t const val) const noexcept
     //!\cond
-        requires sizeof(value_t) == 1
+        requires (sizeof(value_t) == 1)
     //!\endcond
     {
         return derived_t::data[static_cast<unsigned char>(val)];
@@ -200,7 +199,7 @@ struct char_predicate_base
     template <std::integral value_t>
     constexpr bool operator()(value_t const val) const noexcept
     //!\cond
-        requires sizeof(value_t) != 1
+        requires (sizeof(value_t) != 1)
     //!\endcond
     {
         return (static_cast<std::make_unsigned_t<value_t>>(val) < 256) ? operator()(static_cast<uint8_t>(val)) :
@@ -231,12 +230,12 @@ struct char_predicate_base
  */
 template <char_predicate... condition_ts>
 //!\cond
-    requires sizeof...(condition_ts) >= 2
+    requires (sizeof...(condition_ts) >= 2)
 //!\endcond
 struct char_predicate_combiner : public char_predicate_base<char_predicate_combiner<condition_ts...>>
 {
     //!\brief The message representing the disjunction of the associated conditions.
-    static constexpr auto msg = detail::condition_message_v<'|', condition_ts...>;
+    inline static const std::string msg = detail::condition_message_v<'|', condition_ts...>;
 
     //!\brief The base type.
     using base_t = char_predicate_base<char_predicate_combiner<condition_ts...>>;
@@ -257,7 +256,7 @@ template <char_predicate condition_t>
 struct char_predicate_negator : public char_predicate_base<char_predicate_negator<condition_t>>
 {
     //!\brief The message representing the negation of the associated condition.
-    static constexpr auto msg = small_string{'!'} + condition_t::msg;
+    inline static const std::string msg = std::string{'!'} + condition_t::msg;
 
     //!\brief The base type.
     using base_t = char_predicate_base<char_predicate_negator<condition_t>>;
@@ -282,16 +281,16 @@ struct char_predicate_negator : public char_predicate_base<char_predicate_negato
  */
 template <uint8_t interval_first, uint8_t interval_last>
 //!\cond
-    requires interval_first <= interval_last
+    requires (interval_first <= interval_last)
 //!\endcond
 struct is_in_interval_type : public char_predicate_base<is_in_interval_type<interval_first, interval_last>>
 {
     //!\brief The message representing this condition.
-    static constexpr small_string msg = small_string{"is_in_interval<'"} +
-                                        small_string{interval_first}     +
-                                        small_string{"', '"}             +
-                                        small_string{interval_last}      +
-                                        small_string{"'>"};
+    inline static const std::string msg = std::string{"is_in_interval<'"} +
+                                          std::string{interval_first}     +
+                                          std::string{"', '"}             +
+                                          std::string{interval_last}      +
+                                          std::string{"'>"};
 
     //!\brief The base type.
     using base_t = char_predicate_base<is_in_interval_type<interval_first, interval_last>>;
@@ -324,9 +323,9 @@ struct is_in_alphabet_type : public char_predicate_base<is_in_alphabet_type<alph
 {
 public:
     //!\brief The message representing this condition.
-    static constexpr auto msg = small_string{"is_in_alphabet<"} +
-                                small_string{detail::get_display_name_v<alphabet_t>} +
-                                small_string{">"};
+    inline static const std::string msg = std::string{"is_in_alphabet<"}          +
+                                          detail::type_name_as_string<alphabet_t> +
+                                          std::string{">"};
 
     //!\brief The base type.
     using base_t = char_predicate_base<is_in_alphabet_type<alphabet_t>>;
@@ -359,19 +358,10 @@ struct is_char_type : public char_predicate_base<is_char_type<char_v>>
 {
     static_assert(char_v == EOF || static_cast<uint64_t>(char_v) < 256, "TODO");
 
-    //!\brief Helper function to handle char_v == EOF.
-    static constexpr auto get_string = [] ()
-    {
-        if constexpr (char_v == EOF)
-            return small_string{"EOF"};
-        else
-            return small_string{char_v};
-    };
-
     //!\brief The message representing this condition.
-    static constexpr auto msg = small_string{"is_char<'"} +
-                                get_string()              +
-                                small_string("'>");
+    inline static const std::string msg = std::string{"is_char<'"}                                     +
+                                          ((char_v == EOF) ? std::string{"EOF"} : std::string{char_v}) +
+                                          std::string{"'>"};
 
 
 

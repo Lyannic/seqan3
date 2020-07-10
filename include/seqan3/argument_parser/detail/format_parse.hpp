@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -17,6 +17,8 @@
 #include <vector>
 
 #include <seqan3/argument_parser/detail/format_base.hpp>
+#include <seqan3/core/char_operations/predicate.hpp>
+#include <seqan3/core/detail/type_inspection.hpp>
 #include <seqan3/std/concepts>
 #include <seqan3/std/charconv>
 
@@ -70,24 +72,14 @@ public:
     //!\}
 
     /*!\brief Adds an seqan3::detail::get_option call to be evaluated later on.
-     *
-     * \tparam option_type    The type of variable in which to store the given command line argument.
-     * \tparam validator_type The type of validator applied to the value after parsing.
-     *
-     * \param[out] value     The variable in which to store the given command line argument.
-     * \param[in]  short_id  The short identifier for the option (e.g. 'i').
-     * \param[in]  long_id   The long identifier for the option (e.g. "integer").
-     * \param[in]  spec      Advanced option specification, see seqan3::option_spec.
-     * \param[in]  validator The validator applied to the value after parsing (callable).
-     *
-     * \throws seqan3::parser_design_error
+     * \copydetails seqan3::argument_parser::add_option
      */
     template <typename option_type, typename validator_type>
     void add_option(option_type & value,
                     char const short_id,
                     std::string const & long_id,
-                    std::string const & /*desc*/,
-                    option_spec const & spec,
+                    std::string const & SEQAN3_DOXYGEN_ONLY(desc),
+                    option_spec const spec,
                     validator_type && validator)
     {
         option_calls.push_back([this, &value, short_id, long_id, spec, validator]()
@@ -97,18 +89,13 @@ public:
     }
 
     /*!\brief Adds a get_flag call to be evaluated later on.
-     *
-     * \param[out] value    The variable in which to store the given command line argument.
-     * \param[in]  short_id The short identifier for the flag (e.g. 'i').
-     * \param[in]  long_id  The long identifier for the flag (e.g. "integer").
-     *
-     * \throws seqan3::parser_design_error
+     * \copydetails seqan3::argument_parser::add_flag
      */
     void add_flag(bool & value,
                   char const short_id,
                   std::string const & long_id,
-                  std::string const & /*desc*/,
-                  option_spec const & /*spec*/)
+                  std::string const & SEQAN3_DOXYGEN_ONLY(desc),
+                  option_spec const & SEQAN3_DOXYGEN_ONLY(spec))
     {
         flag_calls.push_back([this, &value, short_id, long_id]()
         {
@@ -117,18 +104,11 @@ public:
     }
 
     /*!\brief Adds a get_positional_option call to be evaluated later on.
-     *
-     * \tparam option_type    The type of variable in which to store the given command line argument.
-     * \tparam validator_type The type of validator applied to the value after parsing.
-     *
-     * \param[out] value     The variable in which to store the given command line argument.
-     * \param[in]  validator The validator applied to the value after parsing (callable).
-     *
-     * \throws seqan3::parser_design_error
+     * \copydetails seqan3::argument_parser::add_positional_option
      */
     template <typename option_type, typename validator_type>
     void add_positional_option(option_type & value,
-                               std::string const & /*desc*/,
+                               std::string const & SEQAN3_DOXYGEN_ONLY(desc),
                                validator_type && validator)
     {
         positional_option_calls.push_back([this, &value, validator]()
@@ -163,13 +143,13 @@ public:
 
     // functions are not needed for command line parsing but are part of the format interface.
     //!\cond
-    void add_section(std::string const &) {}
-    void add_subsection(std::string const &) {}
-    void add_line(std::string const &, bool) {}
-    void add_list_item(std::string const &, std::string const &) {}
+    void add_section(std::string const &, option_spec const) {}
+    void add_subsection(std::string const &, option_spec const) {}
+    void add_line(std::string const &, bool, option_spec const) {}
+    void add_list_item(std::string const &, std::string const &, option_spec const) {}
     //!\endcond
 
-    //!\brief Checks whether \p id is empty.
+    //!\brief Checks whether `id` is empty.
     template <typename id_type>
     static bool is_empty_id(id_type const & id)
     {
@@ -180,6 +160,13 @@ public:
     }
 
 private:
+    //!\brief Describes the result of parsing the user input string given the respective option value type.
+    enum class option_parse_result
+    {
+        success, //!< Parsing of user input was successful.
+        error, //!< There was some error while trying to parse the user input.
+        overflow_error //!< Parsing was successful but the arithmetic value would cause an overflow.
+    };
 
     /*!\brief Appends a double dash to a long identifier and returns it.
     * \param[in] long_id The name of the long identifier.
@@ -215,7 +202,8 @@ private:
     }
 
     /*!\brief Finds the position of a short/long identifier in format_parse::argv.
-     *
+     * \tparam id_type The identifier type; must be either of type `char` if it denotes a short identifier or
+     *                 std::string if it denotes a long identifier.
      * \param[in] begin_it The iterator where to start the search of the identifier.
      *                     Note that the end iterator is kept as a member variable.
      * \param[in] id       The identifier to search for (must not contain dashes).
@@ -223,8 +211,16 @@ private:
      *          the list pointed to by begin_t. If the list does not contain the
      *          identifier `id`, the member variable `end_of_options_it` is returned.
      *
-     * Note: The `id` is compared to the prefix of each value in the list, such
-     *       that "-idValue" arguments are correctly identified.
+     * \details
+     *
+     * **Valid short-id value pairs are: `-iValue`, `-i=Value`, or `-i Value`**
+     * If the `id` passed to this function is of type `char`, it is assumed to be a short identifier.
+     * The `id` is found by comparing the prefix of every argument in argv to the `id` prepended with a single `-`.
+     *
+     * **Valid long id value pairs are: `--id=Value`, `--id Value`**.
+     * If the `id` passed to this function is of type `std::string`, it is assumed to be a long identifier.
+     * The `id` is found by comparing every argument in argv to `id` prepended with two dashes (`--`)
+     * or a prefix of such followed by the equal sign `=`.
      */
     template <typename id_type>
     std::vector<std::string>::iterator find_option_id(std::vector<std::string>::iterator const begin_it, id_type const & id)
@@ -233,13 +229,22 @@ private:
             return end_of_options_it;
 
         return (std::find_if(begin_it, end_of_options_it,
-            [&] (const std::string & v)
+            [&] (std::string const & current_arg)
             {
-                size_t id_size{(prepend_dash(id)).size()};
-                if (v.size() < id_size)
-                    return false; // cannot be the correct identifier
+                std::string full_id = prepend_dash(id);
 
-                return v.substr(0, id_size) == prepend_dash(id); // check if prefix of v is the same
+                if constexpr (std::same_as<id_type, char>) // short id
+                {
+                    // check if current_arg starts with "-o", i.e. it correctly identifies all short notations:
+                    // "-ovalue", "-o=value", and "-o value".
+                    return current_arg.substr(0, full_id.size()) == full_id;
+                }
+                else
+                {
+                    // only "--opt Value" or "--opt=Value" are valid
+                    return current_arg.substr(0, full_id.size()) == full_id && // prefix is the same
+                           (current_arg.size() == full_id.size() || current_arg[full_id.size()] == '='); // space or `=`
+                }
             }));
     }
 
@@ -282,86 +287,87 @@ private:
         return false;
     }
 
-    /*!\brief Tries to cast an input string into a value.
+    /*!\brief Tries to parse an input string into a value using the stream `operator>>`.
      * \tparam option_t Must model seqan3::input_stream_over.
-     * \param[out] value Stores the casted value.
-     * \param[in]  in    The input argument to be casted.
-     *
-     * \throws seqan3::type_conversion_failed
+     * \param[out] value Stores the parsed value.
+     * \param[in] in The input argument to be parsed.
+     * \returns seqan3::option_parse_result::error if `in` could not be parsed via the stream
+     *          operator and otherwise seqan3::option_parse_result::success.
      */
     template <typename option_t>
     //!\cond
         requires input_stream_over<std::istringstream, option_t>
     //!\endcond
-    void retrieve_value(option_t & value, std::string const & in)
+    option_parse_result parse_option_value(option_t & value, std::string const & in)
     {
         std::istringstream stream{in};
         stream >> value;
 
         if (stream.fail() || !stream.eof())
-        {
-            throw type_conversion_failed("Argument " + in + " could not be casted to type " +
-                                         get_type_name_as_string(value) + ".");
-        }
+            return option_parse_result::error;
+
+        return option_parse_result::success;
     }
 
     /*!\brief Sets an option value depending on the keys found in seqan3::enumeration_names<option_t>.
      * \tparam option_t Must model seqan3::named_enumeration.
-     * \param[out] value Stores the cast value.
-     * \param[in]  in    The input argument to be cast.
-     *
-     * \throws seqan3::type_conversion_failed
+     * \param[out] value Stores the parsed value.
+     * \param[in] in The input argument to be parsed.
+     * \returns seqan3::option_parse_result::error if `in` could not be found in the
+     *          seqan3::enumeration_names<option_t> map and otherwise seqan3::option_parse_result::success.
      */
     template <named_enumeration option_t>
-    void retrieve_value(option_t & value, std::string_view const in)
+    option_parse_result parse_option_value(option_t & value, std::string_view const in)
     {
         auto map = seqan3::enumeration_names<option_t>;
 
         if (auto it = map.find(in); it == map.end())
-        {
-            throw type_conversion_failed("Argument " + std::string{in} + " could not be cast to enum type " +
-                                         get_display_name_v<option_t>.str() + ".");
-        }
+            return option_parse_result::error;
         else
-        {
             value = it->second;
-        }
+
+        return option_parse_result::success;
     }
 
     //!\cond
-    void retrieve_value(std::string & value, std::string const & in)
+    option_parse_result parse_option_value(std::string & value, std::string const & in)
     {
         value = in;
+        return option_parse_result::success;
     }
     //!\endcond
 
-    /*!\brief Appends a casted value to its container.
+    /*!\brief Parses the given option value and appends it to the target container.
+     * \tparam container_option_t Must model the seqan3::sequence_container and
+     *                            its value_type must model the seqan3::input_stream_over
      *
-     * \tparam container_option_t Must satisfy the seqan3::sequence_container and
-     *                            its value_type must satisfy the seqan3::input_stream_over
-     *
-     * \param[out] value container that stores the casted value.
-     * \param[in]  in    The input argument to be casted.
+     * \param[out] value The container that stores the parsed value.
+     * \param[in] in The input argument to be parsed.
+     * \returns A seqan3::option_parse_result whether parsing was successful or not.
      */
     template <sequence_container container_option_t>
     //!\cond
         requires input_stream_over<std::istringstream, typename container_option_t::value_type>
-    //!\cond
-    void retrieve_value(container_option_t & value, std::string const & in)
+    //!\endcond
+    option_parse_result parse_option_value(container_option_t & value, std::string const & in)
     {
-        typename container_option_t::value_type tmp;
+        typename container_option_t::value_type tmp{};
 
-        retrieve_value(tmp, in); // throws on failure
-        value.push_back(tmp);
+        auto res = parse_option_value(tmp, in);
+
+        if (res == option_parse_result::success)
+            value.push_back(tmp);
+
+        return res;
     }
 
-    /*!\brief Tries to cast an input string into an arithmetic value.
-     * \tparam option_t  The optiona value type; must model seqan3::arithmetic.
-     * \param[out] value Stores the casted value.
-     * \param[in]  in    The input argument to be casted.
-     *
-     * \throws seqan3::type_conversion_failed
-     * \throws seqan3::overflow_error_on_conversion
+    /*!\brief Tries to parse an input string into an arithmetic value.
+     * \tparam option_t The option value type; must model seqan3::arithmetic.
+     * \param[out] value Stores the parsed value.
+     * \param[in] in The input argument to be parsed.
+     * \returns seqan3::option_parse_result::error if `in` could not be parsed to an arithmetic type
+     *          via std::from_chars, seqan3::option_parse_result::overflow_error if `in` could be parsed but the
+     *          value is too large for the respective type, and otherwise seqan3::option_parse_result::success.
      *
      * \details
      *
@@ -371,30 +377,29 @@ private:
     //!\cond
         requires input_stream_over<std::istringstream, option_t>
     //!\endcond
-    void retrieve_value(option_t & value, std::string const & in)
+    option_parse_result parse_option_value(option_t & value, std::string const & in)
     {
         auto res = std::from_chars(&in[0], &in[in.size()], value);
 
         if (res.ec == std::errc::result_out_of_range)
-            throw overflow_error_on_conversion("Argument " + in + " is not in integer range [" +
-                                               std::to_string(std::numeric_limits<option_t>::min()) + "," +
-                                               std::to_string(std::numeric_limits<option_t>::max()) + "].");
+            return option_parse_result::overflow_error;
         else if (res.ec == std::errc::invalid_argument || res.ptr != &in[in.size()])
-            throw type_conversion_failed("Argument " + in + " could not be casted to type " +
-                                         get_type_name_as_string(value) + ".");
+            return option_parse_result::error;
+
+        return option_parse_result::success;
     }
 
-    /*!\brief Tries to cast an input string into boolean value.
-     * \param[out] value Stores the casted value.
-     * \param[in]  in    The input argument to be casted.
-     *
-     * \throws seqan3::type_conversion_failed
+    /*!\brief Tries to parse an input string into a boolean value.
+     * \param[out] value Stores the parsed value.
+     * \param[in] in The input argument to be parsed.
+     * \returns A seqan3::option_parse_result whether parsing was successful or not.
      *
      * \details
      *
-     * This function delegates to std::from_chars.
+     * This function accepts the strings "0" or "false" which sets sets `value` to `false` or "1" or "true" which
+     * sets `value` to `true`.
      */
-    void retrieve_value(bool & value, std::string const & in)
+    option_parse_result parse_option_value(bool & value, std::string const & in)
     {
         if (in == "0")
             value = false;
@@ -405,22 +410,58 @@ private:
         else if (in == "false")
             value = false;
         else
-            throw type_conversion_failed("Argument '" + in + "' could not be casted to boolean.");
+            return option_parse_result::error;
+
+        return option_parse_result::success;
+    }
+
+    /*!\brief Tries to parse an input string into boolean value.
+     * \param[in] res A result value of parsing an input string to the respective option value type.
+     * \param[in] option_name The name of the option whose input was parsed.
+     * \param[in] input_value The original user input in question.
+     *
+     * \throws seqan3::user_input_error if `res` was not seqan3::option_parse_result::success.
+     */
+    template <typename option_type>
+    void throw_on_input_error(option_parse_result const res,
+                              std::string const & option_name,
+                              std::string const & input_value)
+    {
+        std::string msg{"Value parse failed for " + option_name + ": "};
+
+        if (res == option_parse_result::error)
+        {
+            throw user_input_error{msg + "Argument " + input_value + " could not be parsed as type " +
+                                   get_type_name_as_string(input_value) + "."};
+        }
+
+        if constexpr (arithmetic<option_type>)
+        {
+            if (res == option_parse_result::overflow_error)
+            {
+                throw user_input_error{msg + "Numeric argument " + input_value + " is not in the valid range [" +
+                                       std::to_string(std::numeric_limits<option_type>::min()) + "," +
+                                       std::to_string(std::numeric_limits<option_type>::max()) + "]."};
+            }
+        }
+
+        assert(res == option_parse_result::success); // if nothing was thrown, the result must have been a success
     }
 
     /*!\brief Handles value retrieval for options based on different kev value pairs.
      *
-     * \param[out] value     Stores the value found in argv, casted by retrieve_value.
+     * \param[out] value     Stores the value found in argv, parsed by parse_option_value.
      * \param[in]  option_it The iterator where the option identifier was found.
      * \param[in]  id        The option identifier supplied on the command line.
      *
-     * \throws seqan3::parser_invalid_argument
+     * \throws seqan3::too_few_arguments if the option was not followed by a value.
+     * \throws seqan3::user_input_error if the given option value was invalid.
      *
      * \details
      *
      * The value at option_it is inspected whether it is an '-key value', '-key=value'
      * or '-keyValue' pair and the input is extracted accordingly. The input
-     * will then be tried to be casted into the `value` parameter.
+     * will then be tried to be parsed into the `value` parameter.
      *
      * Returns true on success and false otherwise.
      */
@@ -439,9 +480,7 @@ private:
                 if ((*option_it)[id_size] == '=') // -key=value
                 {
                     if ((*option_it).size() == id_size + 1) // malformed because no value follows '-i='
-                        throw parser_invalid_argument("Value cast failed for option " +
-                                                      prepend_dash(id) +
-                                                      ": No value was provided.");
+                        throw too_few_arguments("Missing value for option " + prepend_dash(id));
                     input_value = (*option_it).substr(id_size + 1);
                 }
                 else // -kevValue
@@ -456,21 +495,13 @@ private:
                 *option_it = ""; // remove used identifier
                 ++option_it;
                 if (option_it == end_of_options_it) // should not happen
-                    throw parser_invalid_argument("Value cast failed for option " +
-                                                  prepend_dash(id) +
-                                                  ": No value was provided.");
+                    throw too_few_arguments("Missing value for option " + prepend_dash(id));
                 input_value = *option_it;
                 *option_it = ""; // remove value
             }
 
-            try
-            {
-                retrieve_value(value, input_value);
-            }
-            catch (parser_invalid_argument const & ex)
-            {
-                throw parser_invalid_argument("Value cast failed for option " + prepend_dash(id) + ": " + ex.what());
-            }
+            auto res = parse_option_value(value, input_value);
+            throw_on_input_error<option_type>(res, prepend_dash(id), input_value);
 
             return true;
         }
@@ -479,15 +510,15 @@ private:
 
     /*!\brief Handles value retrieval (non container type) options.
      *
-     * \param[out] value Stores the value found in argv, casted by retrieve_value.
-     * \param[in]  id    The option identifier supplied on the command line.
+     * \param[out] value Stores the value found in argv, parsed by parse_option_value.
+     * \param[in] id The option identifier supplied on the command line.
      *
      * \throws seqan3::option_declared_multiple_times
      *
      * \details
      *
      * If the option identifier is found in format_parse::argv, the value of
-     * the following position in argv is tried to be casted into value
+     * the following position in argv is tried to be parsed given the respective option value type
      * and the identifier and value argument are removed from argv.
      *
      * Returns true on success and false otherwise. This is needed to catch
@@ -511,7 +542,7 @@ private:
 
     /*!\brief Handles value retrieval (container type) options.
      *
-     * \param[out] value Stores all values found in argv, casted by retrieve_value.
+     * \param[out] value Stores all values found in argv, parsed by parse_option_value.
      * \param[in]  id    The option identifier supplied on the command line.
      *
      * \details
@@ -521,7 +552,7 @@ private:
      *
      */
     template <sequence_container option_type, typename id_type>
-    //!cond
+    //!\cond
         requires !std::is_same_v<option_type, std::string>
     //!\endcond
     bool get_option_by_id(option_type & value, id_type const & id)
@@ -606,7 +637,7 @@ private:
      * \param[in]  validator The validator applied to the value after parsing (callable).
      *
      * \throws seqan3::option_declared_multiple_times
-     * \throws seqan3::validation_failed
+     * \throws seqan3::validation_error
      * \throws seqan3::required_option_missing
      *
      * \details
@@ -621,7 +652,7 @@ private:
     void get_option(option_type & value,
                      char const short_id,
                      std::string const & long_id,
-                     option_spec const & spec,
+                     option_spec const spec,
                      validator_type && validator)
     {
         bool short_id_is_set{get_option_by_id(value, short_id)};
@@ -641,7 +672,7 @@ private:
             }
             catch (std::exception & ex)
             {
-                throw validation_failed(std::string("Validation failed for option ") +
+                throw validation_error(std::string("Validation failed for option ") +
                                         combine_option_names(short_id, long_id) + ": " + ex.what());
             }
         }
@@ -673,10 +704,10 @@ private:
      * \param[out] value     The variable in which to store the given command line argument.
      * \param[in]  validator The validator applied to the value after parsing (callable).
      *
-     * \throws seqan3::parser_invalid_argument
+     * \throws seqan3::argument_parser_error
      * \throws seqan3::too_few_arguments
-     * \throws seqan3::validation_failed
-     * \throws seqan3::parser_design_error
+     * \throws seqan3::validation_error
+     * \throws seqan3::design_error
      *
      * \details
      *
@@ -688,10 +719,7 @@ private:
      *
      * This function
      * - checks if the user did not provide enough arguments,
-     * - retrieves the next(no container type) or all (container type),
-     *   remaining non empty value/s in argv,
-     * - re-throws the value cast exception with appended positional option information,
-     * - and re-throws the validation exception with appended positional option information.
+     * - retrieves the next (no container type) or all (container type) remaining non empty value/s in argv
      */
     template <typename option_type, typename validator_type>
     void get_positional_option(option_type & value,
@@ -702,7 +730,8 @@ private:
 
         if (it == argv.end())
             throw too_few_arguments("Not enough positional arguments provided (Need at least " +
-                                    std::to_string(positional_option_calls.size()) + "). See -h/--help for more information.");
+                                    std::to_string(positional_option_calls.size()) +
+                                    "). See -h/--help for more information.");
 
         if (sequence_container<option_type> && !std::is_same_v<option_type, std::string>) // vector/list will be filled with all remaining arguments
         {
@@ -710,15 +739,9 @@ private:
 
             while (it != argv.end())
             {
-                try
-                {
-                    retrieve_value(value, *it);
-                }
-                catch (parser_invalid_argument const & ex)
-                {
-                    throw parser_invalid_argument("Value cast failed for positional option " +
-                                                  std::to_string(positional_option_count) + ": " + ex.what());
-                }
+                auto res = parse_option_value(value, *it);
+                std::string id = "positional option" + std::to_string(positional_option_count);
+                throw_on_input_error<option_type>(res, id, *it);
 
                 *it = ""; // remove arg from argv
                 it = std::find_if(it, argv.end(), [](std::string const & s){return (s != "");});
@@ -727,15 +750,9 @@ private:
         }
         else
         {
-            try
-            {
-                retrieve_value(value, *it);
-            }
-            catch (parser_invalid_argument const & ex)
-            {
-                throw parser_invalid_argument("Value cast failed for positional option " +
-                                              std::to_string(positional_option_count) + ": " + ex.what());
-            }
+            auto res = parse_option_value(value, *it);
+            std::string id = "positional option" + std::to_string(positional_option_count);
+            throw_on_input_error<option_type>(res, id, *it);
 
             *it = ""; // remove arg from argv
         }
@@ -746,7 +763,7 @@ private:
         }
         catch (std::exception & ex)
         {
-            throw validation_failed("Validation failed for positional option " +
+            throw validation_error("Validation failed for positional option " +
                                     std::to_string(positional_option_count) + ": " + ex.what());
         }
     }

@@ -1,20 +1,15 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
 
-#include <range/v3/view/remove_if.hpp>
-#include <range/v3/algorithm/equal.hpp>
-
-#include <seqan3/argument_parser/all.hpp>
+#include <seqan3/argument_parser/argument_parser.hpp>
 #include <seqan3/argument_parser/detail/format_html.hpp>
 #include <seqan3/core/char_operations/predicate.hpp>
-
-using namespace seqan3;
 
 TEST(html_format, empty_information)
 {
@@ -23,7 +18,7 @@ TEST(html_format, empty_information)
 
     // Empty html help page.
     const char * argv0[] = {"./help_add_test --version-check 0", "--export-help", "html"};
-    argument_parser parser0{"empty_options", 3, argv0};
+    seqan3::argument_parser parser0{"empty_options", 3, argv0};
     testing::internal::CaptureStdout();
     EXPECT_EXIT(parser0.parse(), ::testing::ExitedWithCode(EXIT_SUCCESS), "");
     my_stdout = testing::internal::GetCapturedStdout();
@@ -56,13 +51,13 @@ TEST(html_format, empty_information)
                            "<h2>Version</h2>\n"
                            "<strong>Last update:</strong> <br>\n"
                            "<strong>empty_options version:</strong> <br>\n"
-                           "<strong>SeqAn version:</strong> 3.0.0<br>\n"
+                           "<strong>SeqAn version:</strong> " + seqan3::seqan3_version + "<br>\n"
                            "<br>\n"
                            "</body></html>");
     EXPECT_EQ(my_stdout, expected);
 
     const char * argv1[] = {"./help_add_test --version-check 0", "--export-help=html"};
-    argument_parser parser1{"empty_options", 2, argv1};
+    seqan3::argument_parser parser1{"empty_options", 2, argv1};
     testing::internal::CaptureStdout();
     EXPECT_EXIT(parser1.parse(), ::testing::ExitedWithCode(EXIT_SUCCESS), "");
     my_stdout = testing::internal::GetCapturedStdout();
@@ -80,7 +75,7 @@ TEST(html_format, full_information_information)
 
    // Full html help page.
    const char * argv0[] = {"./help_add_test --version-check 0", "--export-help", "html"};
-   argument_parser parser1{"program_full_options", 3, argv0};
+   seqan3::argument_parser parser1{"program_full_options", 3, argv0};
    parser1.info.synopsis.push_back("./some_binary_name synopsis");
    parser1.info.synopsis.push_back("./some_binary_name synopsis2");
    parser1.info.description.push_back("description");
@@ -91,7 +86,7 @@ TEST(html_format, full_information_information)
    parser1.info.long_copyright = "long_copyright";
    parser1.info.citation = "citation";
    parser1.add_option(option_value, 'i', "int", "this is a int option.");
-   parser1.add_option(option_value, 'j', "jint", "this is a required int option.", option_spec::REQUIRED);
+   parser1.add_option(option_value, 'j', "jint", "this is a required int option.", seqan3::option_spec::REQUIRED);
    parser1.add_flag(flag_value, 'f', "flag", "this is a flag.");
    parser1.add_flag(flag_value, 'k', "kflag", "this is a flag.");
    parser1.add_positional_option(non_list_pos_opt_value, "this is a positional option.");
@@ -169,7 +164,7 @@ TEST(html_format, full_information_information)
                           "<h2>Version</h2>\n"
                           "<strong>Last update:</strong> <br>\n"
                           "<strong>program_full_options version:</strong> <br>\n"
-                          "<strong>SeqAn version:</strong> 3.0.0<br>\n"
+                          "<strong>SeqAn version:</strong> " + seqan3::seqan3_version + "<br>\n"
                           "<h2>Url</h2>\n"
                           "www.seqan.de<br>\n"
                           "<br>\n"
@@ -189,11 +184,11 @@ TEST(export_help, parse_error)
     const char * argv3[] = {"./help_add_test --version-check 0", "--export-help", "atml"};
 
     // no value after --export-help
-    EXPECT_THROW((argument_parser{"test_parser", 2, argv}), parser_invalid_argument);
+    EXPECT_THROW((seqan3::argument_parser{"test_parser", 2, argv}), seqan3::argument_parser_error);
 
     // wrong value after --export-help
-    EXPECT_THROW((argument_parser{"test_parser", 2, argv2}), validation_failed);
+    EXPECT_THROW((seqan3::argument_parser{"test_parser", 2, argv2}), seqan3::validation_error);
 
     // wrong value after --export-help
-    EXPECT_THROW((argument_parser{"test_parser", 3, argv3}), validation_failed);
+    EXPECT_THROW((seqan3::argument_parser{"test_parser", 3, argv3}), seqan3::validation_error);
 }

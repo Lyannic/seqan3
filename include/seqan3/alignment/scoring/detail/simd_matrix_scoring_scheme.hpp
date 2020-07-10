@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE
 // -----------------------------------------------------------------------------------------------------
@@ -116,6 +116,12 @@ public:
         return result;
     }
     //!\}
+
+    //!\brief Returns the match score used for padded symbols.
+    constexpr typename scoring_scheme_t::score_type padding_match_score() noexcept
+    {
+        return 1;
+    }
 
 private:
     //!\brief Internally stores the given scalar scoring scheme matrix.

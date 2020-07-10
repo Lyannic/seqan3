@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -173,10 +173,11 @@ public:
      */
     void deallocate(pointer const p, size_type const n) const noexcept
     {
+        size_t bytes_to_deallocate = n * sizeof(value_type);
         if constexpr (alignment <= __STDCPP_DEFAULT_NEW_ALIGNMENT__)
-            ::operator delete(p, n);
+            ::operator delete(p, bytes_to_deallocate);
         else // Use alignment aware deallocator function.
-            ::operator delete(p, n, static_cast<std::align_val_t>(alignment));
+            ::operator delete(p, bytes_to_deallocate, static_cast<std::align_val_t>(alignment));
     }
 
     /*!\brief The aligned_allocator member template class aligned_allocator::rebind provides a way to obtain an

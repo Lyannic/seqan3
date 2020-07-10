@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -23,17 +23,35 @@
 #include <seqan3/alphabet/cigar/cigar.hpp>
 #include <seqan3/core/type_list/type_list.hpp>
 #include <seqan3/io/alignment_file/header.hpp>
+#include <seqan3/io/alignment_file/misc.hpp>
 #include <seqan3/io/alignment_file/output_options.hpp>
 #include <seqan3/io/alignment_file/sam_tag_dictionary.hpp>
 
 namespace seqan3::detail
 {
 
+/*!\brief Internal class used to expose the actual format interface to write alignment records into the file.
+ * \ingroup alignment_file
+ *
+ * \tparam format_type The type of the format to be exposed.
+ *
+ * \details
+ *
+ * Exposes the protected member function `write_alignment_record` from the given `format_type`, such that the file can
+ * call the proper function for the selected format.
+ */
 template <typename format_type>
 struct alignment_file_output_format_exposer : public format_type
 {
 public:
-    using format_type::write_alignment_record;
+    // Can't use `using format_type::write_alignment_record` as it produces a hard failure in the format concept check
+    // for types that do not model the format concept, i.e. don't offer the proper write_alignment_record interface.
+    //!\brief Forwards to the seqan3::alignment_file_output_format::write_alignment_record interface.
+    template <typename ...ts>
+    void write_alignment_record(ts && ...args)
+    {
+        format_type::write_alignment_record(std::forward<ts>(args)...);
+    }
 };
 
 } // namespace seqan3::detail
@@ -68,7 +86,7 @@ SEQAN3_CONCEPT alignment_file_output_format =
               std::optional<int32_t>                                               & ref_offset,
               std::pair<std::vector<gapped<dna4>>, std::vector<gapped<dna4>>>      & align,
               std::vector<cigar>                                                   & cigar,
-              uint16_t                                                             & flag,
+              sam_flag                                                             & flag,
               uint8_t                                                              & mapq,
               std::tuple<std::optional<int32_t>, std::optional<int32_t>, int32_t>  & mate,
               sam_tag_dictionary                                                   & tag_dict,
@@ -143,20 +161,20 @@ SEQAN3_CONCEPT alignment_file_output_format =
  * \param[in,out] stream The output stream to write into.
  * \param[in] options File specific options passed to the format.
  * \param[in] header A pointer to the header object of the file.
- * \param[in] seq The data for seqan3::field::SEQ, i.e. the query sequence.
- * \param[in] qual The data for seqan3::field::QUAL, e.g. the query quality sequence.
- * \param[in] id The data for seqan3::field::ID, e.g. the read id.
- * \param[in] offset The data for seqan3::field::OFFSET, i.e. the start position of the alignment in \p seq.
- * \param[in] ref_seq The data for seqan3::field::REF_OFFSET, i.e. the reference sequence.
- * \param[in] ref_id The data for seqan3::field::REF_ID, e.g. the reference id..
- * \param[in] ref_offset The data for seqan3::field::REF_OFFSET, i.e. the start position of the alignment in \p ref_seq.
- * \param[in] align The data for seqan3::field::ALIGN, e.g. the alignment between query and ref.
- * \param[in] cigar_vector The data for seqan3::field::CIGAR, e.g. representing the alignment between query and ref.
- * \param[in] flag The data for seqan3::field::FLAG, e.g. the SAM mapping flag value.
- * \param[in] mapq The data for seqan3::field::MAPQ, e.g. the mapping quality value.
- * \param[in] mate The data for seqan3::field::MATE, e.g. the mate information of paired reads.
- * \param[in] tag_dict The data for seqan3::field::TAGS, e.g. the optional SAM field tag dictionary.
- * \param[in] e_value The data for seqan3::field::E_VALUE, e.g. the e-value of the alignment (BLAST).
+ * \param[in] seq The data for seqan3::field::seq, i.e. the query sequence.
+ * \param[in] qual The data for seqan3::field::qual, e.g. the query quality sequence.
+ * \param[in] id The data for seqan3::field::id, e.g. the read id.
+ * \param[in] offset The data for seqan3::field::offset, i.e. the start position of the alignment in \p seq.
+ * \param[in] ref_seq The data for seqan3::field::ref_offset, i.e. the reference sequence.
+ * \param[in] ref_id The data for seqan3::field::ref_id, e.g. the reference id..
+ * \param[in] ref_offset The data for seqan3::field::ref_offset, i.e. the start position of the alignment in \p ref_seq.
+ * \param[in] align The data for seqan3::field::align, e.g. the alignment between query and ref.
+ * \param[in] cigar_vector The data for seqan3::field::cigar, e.g. representing the alignment between query and ref.
+ * \param[in] flag The data for seqan3::field::flag, e.g. the SAM mapping flag value.
+ * \param[in] mapq The data for seqan3::field::mapq, e.g. the mapping quality value.
+ * \param[in] mate The data for seqan3::field::mate, e.g. the mate information of paired reads.
+ * \param[in] tag_dict The data for seqan3::field::tags, e.g. the optional SAM field tag dictionary.
+ * \param[in] e_value The data for seqan3::field::e_value, e.g. the e-value of the alignment (BLAST).
  * \param[in] bit_score The data for seqan3::field::, e.g. the bit score of the alignment (BLAST).
  *
  */

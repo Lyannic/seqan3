@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -357,7 +357,7 @@ namespace seqan3::views
  * | std::ranges::output_range        |                                   | *preserved*                                |
  * | seqan3::const_iterable_range     |                                   | *preserved*                                |
  * |                                  |                                   |                                            |
- * | seqan3::reference_t              |                                   | seqan3::reference_t<urng_t>                |
+ * | std::ranges::range_reference_t   |                                   | std::ranges::range_reference_t<urng_t>     |
  *
  * See the \link views views submodule documentation \endlink for detailed descriptions of the view properties.
  *
@@ -369,7 +369,7 @@ namespace seqan3::views
  * | `urng_t` (underlying range type)       | `rrng_t` (returned range type)                       |
  * |:--------------------------------------:|:----------------------------------------------------:|
  * | `std::ranges::random_access_range`     | `std::ranges::ref_view<urng_t>`                      |
- * | `seqan3::pseudo_random_access_range`   | `seqan3::detail::view_enforce_random_access`          |
+ * | `seqan3::pseudo_random_access_range`   | `seqan3::detail::view_enforce_random_access`         |
  *
  * The adaptor returns exactly the type specified above. In the second case a view is returned whose iterator wraps
  * the iterator of the underlying range and adapts all of its functionality but overwrites the

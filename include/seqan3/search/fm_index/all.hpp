@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -38,7 +38,7 @@
  *
  * Index Cursors are lightweight objects, i.e. they are cheap to copy.
  *
- * Note that although the SeqAn index cursor, although having similar behaviour, don't model any of the standard library
+ * Note that the SeqAn index cursor, although having similar behaviour, doesn't model any of the standard library
  * iterator concepts, not even std::input_or_output_iterator.
  *
  */

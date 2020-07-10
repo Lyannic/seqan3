@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -111,19 +111,20 @@ public:
     }
 
     /*!\brief Constructs the matrix by the given dimensions and initialises it with the given range.
-     * \param row_dim The row dimension (number of rows).
-     * \param col_dim The column dimension (number of columns).
-     * \param entries A range used to fill the underlying matrix.
+     * \tparam entries_t Range of values that are convertible to value_type; must model std::ranges::forward_range
+     * \param[in] row_dim The row dimension (number of rows).
+     * \param[in] col_dim The column dimension (number of columns).
+     * \param[in] entries A range used to fill the underlying matrix.
      */
     template <std::ranges::forward_range entries_t>
     //!\cond
-        requires (!std::same_as<entries_t, storage_type>) && (std::convertible_to<value_type_t<entries_t>, value_type>)
+        requires (std::convertible_to<std::ranges::range_value_t<entries_t>, value_type>)
     //!\endcond
     two_dimensional_matrix(number_rows const row_dim, number_cols const col_dim, entries_t entries) :
         row_dim{row_dim.get()},
         col_dim{col_dim.get()}
     {
-        static_assert(std::move_constructible<value_type_t<entries_t>>, "The value type must be moveable.");
+        static_assert(std::move_constructible<std::ranges::range_value_t<entries_t>>, "The value type must be moveable.");
 
         assert(static_cast<size_t>(std::ranges::distance(entries)) == (row_dim.get() * col_dim.get()));
         storage.resize(row_dim.get() * col_dim.get());
@@ -131,16 +132,56 @@ public:
     }
 
     //!\overload
-    template <std::ranges::forward_range entries_t>
-    //!\cond
-        requires (std::same_as<entries_t, storage_type>)
-    //!\endcond
-    two_dimensional_matrix(number_rows const row_dim, number_cols const col_dim, entries_t entries) :
+    two_dimensional_matrix(number_rows const row_dim, number_cols const col_dim, storage_type entries) :
         row_dim{row_dim.get()},
         col_dim{col_dim.get()}
     {
         assert(static_cast<size_t>(std::ranges::distance(entries)) == (row_dim.get() * col_dim.get()));
         storage = std::move(entries);
+    }
+
+    /*!\brief Explicit construction from the other major-order.
+     * \tparam other_value_t The target value type; must be assignable from `value_t`.
+     * \tparam other_allocator_t The allocator type used for the target matrix.
+     * \tparam other_order The other seqan3::detail::matrix_major_order.
+     *
+     * \details
+     *
+     * Copies the matrix cell by cell, rearranging the stored elements in the internal memory to represent the
+     * converted major-order.
+     *
+     * Consider the following matrix:
+     *
+     * 0  1  2  3
+     * 4  5  6  7
+     * 8  9  10 11
+     *
+     * In row-major-order the data is stored in a flat vector in the following way:
+     * 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+     *
+     * Converting it to column-major-order will rearrange the elements:
+     * 0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11
+     *
+     * Note that the matrix is not transposed, so that the general layout as displayed above will remain the same.
+     * It only changes the matrix major order, i.e. data stored row wise is now stored column wise and vice versa.
+     */
+    template <typename other_value_t, typename other_allocator_t, matrix_major_order other_order>
+    //!\cond
+        requires std::assignable_from<other_value_t &, value_t &>
+    //!\endcond
+    explicit constexpr two_dimensional_matrix(two_dimensional_matrix<other_value_t,
+                                                                     other_allocator_t,
+                                                                     other_order> const & matrix) :
+        two_dimensional_matrix{number_rows{matrix.rows()}, number_cols{matrix.cols()}}
+    {
+        for (size_t i = 0; i < cols(); ++i)
+        {
+            for (size_t j = 0; j < rows(); ++j)
+            {
+                matrix_coordinate coord{row_index_type{j}, column_index_type{i}};
+                (*this)[coord] = matrix[coord];
+            }
+        }
     }
     //!\}
 
@@ -256,52 +297,6 @@ public:
     }
     //!\}
 
-    /*!\brief Explicit transformation to the other major-order.
-     * \tparam other_value_t The target value type; must be assignable from `value_t`.
-     * \tparam other_allocator_t The allocator type used for the target matrix.
-     * \tparam other_order The other seqan3::detail::matrix_major_order; must not be the same as `order`.
-     *
-     * \details
-     *
-     * Copies the matrix cell by cell, rearranging the stored elements in the internal memory to represent the
-     * converted major-order.
-     *
-     * Consider the following matrix:
-     *
-     * 0  1  2  3
-     * 4  5  6  7
-     * 8  9  10 11
-     *
-     * In row-major-order the data is stored in a flat vector in the following way:
-     * 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-     *
-     * Converting it to column-major-order will rearrange the elements:
-     * 0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11
-     *
-     * Note that the matrix is not transposed, such that the general layout as displayed above will remain the same.
-     * It only changes the matrix major order, i.e. data stored row wise is now stored column wise and vice versa.
-     */
-    template <typename other_value_t, typename other_allocator_t, matrix_major_order other_order>
-    //!\cond
-        requires order != other_order && std::assignable_from<other_value_t &, value_t &>
-    //!\endcond
-    explicit constexpr operator two_dimensional_matrix<other_value_t, other_allocator_t, other_order>() const
-    {
-        using converted_t = two_dimensional_matrix<other_value_t, other_allocator_t, other_order>;
-        converted_t tmp{number_rows{rows()}, number_cols{cols()}};
-
-        for (size_t i = 0; i < cols(); ++i)
-        {
-            for (size_t j = 0; j < rows(); ++j)
-            {
-                matrix_coordinate coord{row_index_type{j}, column_index_type{i}};
-                tmp[coord] = (*this)[coord];
-            }
-        }
-
-        return tmp;
-    }
-
 private:
 
     storage_type storage; //!< The matrix as a one-dimensional (flattened) vector of entries.
@@ -328,7 +323,9 @@ private:
 
     //!\brief Befriend the base crtp class.
     template <typename derived_t, matrix_major_order other_order>
+    //!\cond
         requires is_type_specialisation_of_v<derived_t, iterator_type> && other_order == order
+    //!\endcond
     friend class two_dimensional_matrix_iterator_base;
 
     //!\brief Befriend the corresponding const iterator.
@@ -350,13 +347,13 @@ public:
     * \{
     */
     //!\brief Value type of this iterator.
-    using value_type = value_type_t<storage_iterator>;
+    using value_type = std::iter_value_t<storage_iterator>;
     //!\brief Reference to `value_type`.
-    using reference = reference_t<storage_iterator>;
+    using reference = std::iter_reference_t<storage_iterator>;
     //!\brief The pointer type.
     using pointer = typename storage_iterator::pointer;
     //!\brief Type for distances between iterators.
-    using difference_type = difference_type_t<storage_iterator>;
+    using difference_type = std::iter_difference_t<storage_iterator>;
     //!\brief The iterator tag.
     using iterator_category = std::random_access_iterator_tag;
     //!\}

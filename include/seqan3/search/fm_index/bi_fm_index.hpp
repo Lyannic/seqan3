@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -33,13 +33,14 @@ namespace seqan3
  * \tparam alphabet_t        The alphabet type; must model seqan3::semialphabet.
  * \tparam text_layout_mode_ Indicates whether this index works on a text collection or a single text.
  *                           See seqan3::text_layout.
- * \tparam sdsl_index_type_  The type of the underlying SDSL index, must model seqan3::sdsl_index.
+ * \tparam sdsl_index_type_  The type of the underlying SDSL index, must model seqan3::detail::sdsl_index.
+ * \implements seqan3::cerealisable
  * \details
  *
  * The seqan3::bi_fm_index is a fast and space-efficient bidirectional string index to search strings and
  * collections of strings.
- * In general, we recommend to favour the seqan3::bi_fm_index over the seqan3::fm_index if you want to allow multiple errors when
- * searching.
+ * In general, we recommend to favour the seqan3::bi_fm_index over the unidirectional seqan3::fm_index if you want to
+ * allow multiple errors when searching.
  *
  * ### General information
  *
@@ -142,7 +143,7 @@ private:
     void construct(text_t && text)
     {
         static_assert(std::ranges::bidirectional_range<text_t>, "The text must model bidirectional_range.");
-        static_assert(std::ranges::bidirectional_range<reference_t<text_t>>,
+        static_assert(std::ranges::bidirectional_range<std::ranges::range_reference_t<text_t>>,
                       "The elements of the text collection must model bidirectional_range.");
         static_assert(alphabet_size<innermost_value_type_t<text_t>> <= 256, "The alphabet is too big.");
         static_assert(std::convertible_to<innermost_value_type_t<text_t>, alphabet_t>,
@@ -167,7 +168,7 @@ public:
      * \{
      */
     //!\brief The type of the underlying character of the indexed text.
-    using char_type = typename fm_index_type::char_type;
+    using alphabet_type = typename fm_index_type::alphabet_type;
     //!\brief Type for representing positions in the indexed text.
     using size_type = typename sdsl_index_type::size_type;
     //!\}
@@ -290,7 +291,7 @@ public:
      *
      * No-throw guarantee.
      */
-    cursor_type begin() const noexcept
+    cursor_type cursor() const noexcept
     {
         return {*this};
     }

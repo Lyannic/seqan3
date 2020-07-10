@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -18,19 +18,37 @@
 #include <vector>
 
 #include <seqan3/alphabet/nucleotide/dna5.hpp>
-#include <seqan3/alphabet/quality/aliases.hpp>
 #include <seqan3/alphabet/quality/phred42.hpp>
+#include <seqan3/alphabet/quality/qualified.hpp>
 #include <seqan3/core/type_list/type_list.hpp>
 #include <seqan3/io/sequence_file/input_options.hpp>
 
 namespace seqan3::detail
 {
 
+/*!\brief Internal class used to expose the actual format interface to read sequence records from the file.
+ * \ingroup sequence_file
+ *
+ * \tparam format_type The type of the format to be exposed.
+ *
+ * \details
+ *
+ * Exposes the protected member function `read_sequence_record` from the given `format_type`, such that the file can
+ * call the proper function for the selected format.
+ */
 template <typename format_type>
 struct sequence_file_input_format_exposer : public format_type
 {
 public:
-    using format_type::read_sequence_record;
+
+    // Can't use `using format_type::read_sequence_record` as it produces a hard failure in the format concept check
+    // for types that do not model the format concept, i.e. don't offer the proper read_sequence_record interface.
+    //!\brief Forwards to the seqan3::sequence_file_input_format::read_sequence_record interface.
+    template <typename ...ts>
+    void read_sequence_record(ts && ...args)
+    {
+        format_type::read_sequence_record(std::forward<ts>(args)...);
+    }
 };
 
 } // namespace seqan3::detail
@@ -50,14 +68,13 @@ namespace seqan3
  */
 //!\cond
 template <typename t>
-
 SEQAN3_CONCEPT sequence_file_input_format = requires (detail::sequence_file_input_format_exposer<t> & v,
                                                       std::ifstream                                 & f,
                                                       sequence_file_input_options<dna5, false>      & options,
-                                                      dna5_vector                                   & seq,
+                                                      std::vector<dna5>                             & seq,
                                                       std::string                                   & id,
                                                       std::vector<phred42>                          & qual,
-                                                      std::vector<dna5q>                            & seq_qual)
+                                                      std::vector<qualified<dna5, phred42>>         & seq_qual)
 {
     t::file_extensions;
 
@@ -77,17 +94,17 @@ SEQAN3_CONCEPT sequence_file_input_format = requires (detail::sequence_file_inpu
  *               id_type & id, qual_type & qualities)
  * \brief Read from the specified stream and back-insert into the given field buffers.
  * \tparam stream_type      Input stream, must satisfy seqan3::input_stream_over with `char`.
- * \tparam seq_type         Type of the seqan3::field::SEQ input; must satisfy std::ranges::output_range
+ * \tparam seq_type         Type of the seqan3::field::seq input; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam id_type          Type of the seqan3::field::ID input; must satisfy std::ranges::output_range
+ * \tparam id_type          Type of the seqan3::field::id input; must satisfy std::ranges::output_range
  * over a seqan3::alphabet.
- * \tparam qual_type        Type of the seqan3::field::QUAL input; must satisfy std::ranges::output_range
+ * \tparam qual_type        Type of the seqan3::field::qual input; must satisfy std::ranges::output_range
  * over a seqan3::writable_quality_alphabet.
  * \param[in,out] stream    The input stream to read from.
  * \param[in]     options   File specific options passed to the format.
- * \param[out]    sequence  The buffer for seqan3::field::SEQ input, i.e. the "sequence".
- * \param[out]    id        The buffer for seqan3::field::ID input, e.g. the header line in FastA.
- * \param[out]    qualities The buffer for seqan3::field::QUAL input.
+ * \param[out]    sequence  The buffer for seqan3::field::seq input, i.e. the "sequence".
+ * \param[out]    id        The buffer for seqan3::field::id input, e.g. the header line in FastA.
+ * \param[out]    qualities The buffer for seqan3::field::qual input.
  *
  * \details
  *
@@ -96,8 +113,8 @@ SEQAN3_CONCEPT sequence_file_input_format = requires (detail::sequence_file_inpu
  *   * The function must also accept std::ignore as parameter for any of the fields.
  *     [This is enforced by the concept checker!]
  *   * In this case the data read for that field shall be discarded by the format.
- *   * Instead of passing the fields seqan3::field::SEQ and seqan3::field::QUAL, you may also pass
- *     seqan3::field::SEQ_QUAL to both parameters. If you do, the seqan3::value_type_t of the argument must be
+ *   * Instead of passing the fields seqan3::field::seq and seqan3::field::qual, you may also pass
+ *     seqan3::field::seq_qual to both parameters. If you do, the std::ranges::range_value_t of the argument must be
  *     a specialisation of seqan3::qualified and the second template parameter to
  *     seqan3::sequence_file_input_options must be set to true.
  */

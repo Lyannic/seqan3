@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -151,7 +151,7 @@ public:
      */
     template <std::ranges::input_range urng_t>
     //!\cond
-        requires std::ranges::input_range<reference_t<urng_t>>
+        requires std::ranges::input_range<std::ranges::range_reference_t<urng_t>>
     //!\endcond
     constexpr auto operator()(urng_t && urange) const &
     {
@@ -164,7 +164,7 @@ public:
     //!\overload
     template <std::ranges::input_range urng_t>
     //!\cond
-        requires std::ranges::input_range<reference_t<urng_t>>
+        requires std::ranges::input_range<std::ranges::range_reference_t<urng_t>>
     //!\endcond
     constexpr auto operator()(urng_t && urange) &&
     {
@@ -184,7 +184,7 @@ public:
      */
     template <typename first_arg_t, typename ...stored_arg_types>
     //!\cond
-        requires !std::ranges::input_range<first_arg_t>
+        requires (!std::ranges::input_range<first_arg_t>)
     //!\endcond
     constexpr auto operator()(first_arg_t && first, stored_arg_types && ...args) const
     {
@@ -222,7 +222,7 @@ public:
      */
     template <std::ranges::input_range urng_t, typename ...stored_arg_types>
     //!\cond
-        requires sizeof...(stored_arg_types) > 0
+        requires (sizeof...(stored_arg_types) > 0)
     //!\endcond
     constexpr auto operator()(urng_t && urange, stored_arg_types && ...args) const
     {

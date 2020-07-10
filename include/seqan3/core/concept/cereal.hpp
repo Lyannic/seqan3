@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -117,18 +117,21 @@ SEQAN3_CONCEPT cereal_text_archive = false;
  *
  * ```
  * #include <seqan3/core/concept/cereal.hpp>
- * using namespace seqan3;
  *
  * // fundamental types are serialisable
- * static_assert(cerealisable<int>);
+ * static_assert(seqan3::cerealisable<int>);
  *
  * #include <array>
  * #include <cereal/types/array.hpp> // std::array is now serialisable
- * static_assert(cerealisable<std::array<int, 12>>);
+ * static_assert(seqan3::cerealisable<std::array<int, 12>>);
  *
  * #include <seqan3/alphabet/nucleotide/dna4.hpp> // dna4 is serialisable
- * static_assert(cerealisable<dna4>);
+ * static_assert(seqan3::cerealisable<seqan3::dna4>);
  * ```
+ *
+ * ### Example
+ *
+ * \include test/snippet/core/cereal_example.cpp
  *
  * \attention
  * The cereal library is an optional dependency of SeqAn, if it is not found **no types** satisfy this concept.

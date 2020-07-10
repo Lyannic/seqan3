@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------------------------------
-// Copyright (c) 2006-2019, Knut Reinert & Freie Universität Berlin
-// Copyright (c) 2016-2019, Knut Reinert & MPI für molekulare Genetik
+// Copyright (c) 2006-2020, Knut Reinert & Freie Universität Berlin
+// Copyright (c) 2016-2020, Knut Reinert & MPI für molekulare Genetik
 // This file may be used, modified and/or redistributed under the terms of the 3-clause BSD-License
 // shipped with this file and also available at: https://github.com/seqan/seqan3/blob/master/LICENSE.md
 // -----------------------------------------------------------------------------------------------------
@@ -99,20 +99,20 @@ enum text_layout : bool
 template <typename t>
 SEQAN3_CONCEPT fm_index_specialisation = std::semiregular<t> && requires (t index)
 {
-    typename t::char_type;
+    typename t::alphabet_type;
     typename t::size_type;
     typename t::cursor_type;
 
     // NOTE: circular dependency
     // requires fm_index_cursor_specialisation<typename t::cursor_type>;
     requires requires (t index, std::conditional_t<t::text_layout_mode == text_layout::collection,
-                                                   std::vector<std::vector<typename t::char_type>>,
-                                                   std::vector<typename t::char_type>> const text)
+                                                   std::vector<std::vector<typename t::alphabet_type>>,
+                                                   std::vector<typename t::alphabet_type>> const text)
     {
         { t(text) };
     };
 
-    { index.begin() } -> typename t::cursor_type;
+    { index.cursor() } -> typename t::cursor_type;
 
     { index.size()  } -> typename t::size_type;
     { index.empty() } -> bool;
@@ -126,7 +126,7 @@ SEQAN3_CONCEPT fm_index_specialisation = std::semiregular<t> && requires (t inde
  * \typedef typename t::text_type text_type
  * \brief Type of the indexed text.
  *
- * \typedef typename t::char_type char_type
+ * \typedef typename t::alphabet_type alphabet_type
  * \brief Type of the underlying character of text_type.
  *
  * \typedef typename t::size_type size_type
@@ -155,14 +155,14 @@ SEQAN3_CONCEPT fm_index_cursor_specialisation = std::semiregular<t> && requires 
 
     requires fm_index_specialisation<typename t::index_type>;
 
-    requires requires (typename t::index_type const index) { { t(index) } };
+    requires requires (typename t::index_type const index) { { t(index) }; };
 
     requires requires (t cur,
-                       typename t::index_type::char_type const c,
-                       std::vector<typename t::index_type::char_type> const seq,
+                       typename t::index_type::alphabet_type const c,
+                       std::vector<typename t::index_type::alphabet_type> const seq,
                        std::conditional_t<t::index_type::text_layout_mode == text_layout::collection,
-                                          std::vector<std::vector<typename t::index_type::char_type>>,
-                                          std::vector<typename t::index_type::char_type>> const text)
+                                          std::vector<std::vector<typename t::index_type::alphabet_type>>,
+                                          std::vector<typename t::index_type::alphabet_type>> const text)
     {
         { cur.extend_right()    } -> bool;
         { cur.extend_right(c)   } -> bool;
@@ -248,11 +248,11 @@ SEQAN3_CONCEPT bi_fm_index_cursor_specialisation = fm_index_cursor_specialisatio
 {
     requires bi_fm_index_specialisation<typename t::index_type>;
 
-    requires requires (typename t::index_type const index) { { t(index) } };
+    requires requires (typename t::index_type const index) { { t(index) }; };
 
     requires requires (t cur,
-                       typename t::index_type::char_type const c,
-                       std::vector<typename t::index_type::char_type> const seq)
+                       typename t::index_type::alphabet_type const c,
+                       std::vector<typename t::index_type::alphabet_type> const seq)
     {
         { cur.extend_left()    } -> bool;
         { cur.extend_left(c)   } -> bool;

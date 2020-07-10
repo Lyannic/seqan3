@@ -47,21 +47,21 @@ refined concepts (i.e. types that model a stronger concept, always also model th
 
 | Concept                           | Description                                                 |
 |-----------------------------------|-------------------------------------------------------------|
-| std::ranges::input_range           | can be iterated from beginning to end **at least once**     |
-| std::ranges::forward_range         | can be iterated from beginning to end **multiple times**    |
-| std::ranges::bidirectional_range   | iterator can also move backwards with `--`                  |
-| std::ranges::random_access_range    | you can jump to elements **in constant-time** `[]`          |
-| std::ranges::contiguous_range      | elements are always stored consecutively in memory          |
+| std::ranges::input_range          | can be iterated from beginning to end **at least once**     |
+| std::ranges::forward_range        | can be iterated from beginning to end **multiple times**    |
+| std::ranges::bidirectional_range  | iterator can also move backwards with `--`                  |
+| std::ranges::random_access_range  | you can jump to elements **in constant-time** `[]`          |
+| std::ranges::contiguous_range     | elements are always stored consecutively in memory          |
 
 For the well-known containers from the standard library this matrix shows which concepts they model:
 
-|                                   | std::forward_list | std::list | std::deque | std::array | std::vector |
-|-----------------------------------|:-----------------:|:---------:|:----------:|:----------:|:-----------:|
-| std::ranges::input_range           | ✅                 | ✅         | ✅          | ✅          | ✅           |
-| std::ranges::forward_range         | ✅                 | ✅         | ✅          | ✅          | ✅           |
-| std::ranges::bidirectional_range   |                   | ✅         | ✅          | ✅          | ✅           |
-| std::ranges::random_access_range    |                   |           | ✅          | ✅          | ✅           |
-| std::ranges::contiguous_range      |                   |           |            | ✅          | ✅           |
+|                                    | std::forward_list | std::list | std::deque | std::array | std::vector |
+|------------------------------------|:-----------------:|:---------:|:----------:|:----------:|:-----------:|
+| std::ranges::input_range           | ✅                | ✅        | ✅         | ✅         | ✅          |
+| std::ranges::forward_range         | ✅                | ✅        | ✅         | ✅         | ✅          |
+| std::ranges::bidirectional_range   |                   | ✅        | ✅         | ✅         | ✅          |
+| std::ranges::random_access_range   |                   |           | ✅         | ✅         | ✅          |
+| std::ranges::contiguous_range      |                   |           |            | ✅         | ✅          |
 
 There are also range concepts that are independent of input or output or one of the above concept, e.g.
 std::ranges::sized_range which requires that the size of a range can be computed and in constant time.
@@ -140,7 +140,7 @@ the drop adaptor and a combined view object is returned.
 Note that accessing the 0th element of the view is still lazy, determining which element it maps to happens at the time
 of access.
 
-\assignment{Exercise: Fun with views I}
+\assignment{Assignment 1: Fun with views I}
 Look up the documentation of std::views::transform and std::views::filter.
 Both take a invocable object as parameter, e.g. a lambda function.
 std::views::transform applies the lambda on each element in the underlying range and std::views::filter
@@ -163,7 +163,7 @@ std::cout << *v.begin() << '\n'; // should print 4
 ```
 \endassignment
 \solution
-\snippet doc/tutorial/ranges/range_snippets.cpp solution1
+\include doc/tutorial/ranges/range_solution1.cpp
 \endsolution
 
 ## View concepts
@@ -184,8 +184,8 @@ are not read-only**:
 
 \snippet doc/tutorial/ranges/range_snippets.cpp assign_through
 
-\assignment{Exercise: Fun with views II}
-Have a look at the solution to the previous exercise (filter+transform).
+\assignment{Assignment 2: Fun with views II}
+Have a look at the solution to the previous assignment (filter+transform).
 Which of the following concepts do you think `v` models?
 
 | Concept                          | yes/no? |
@@ -208,21 +208,26 @@ Which of the following concepts do you think `v` models?
 | std::ranges::input_range         |   ✅    |
 | std::ranges::forward_range       |   ✅    |
 | std::ranges::bidirectional_range |   ✅    |
-| std::ranges::random_access_range |        |
-| std::ranges::contiguous_range    |        |
-|                                  |        |
+| std::ranges::random_access_range |         |
+| std::ranges::contiguous_range    |         |
+|                                  |         |
 | std::ranges::view                |   ✅    |
-| std::ranges::sized_range         |        |
-| std::ranges::output_range        |        |
+| std::ranges::sized_range         |         |
+| std::ranges::output_range        |         |
 
-The filter does not preserve RandomAccess and therefore not Contiguous, because it doesn't "know" which element
-of the underlying range is the i-th one in constant time.
-This also means we don't know the size.
+Surprised? Let's have a closer look at the std::views::filter view. The filter view only returns the value of the 
+underlying range for which the given predicate evaluates to `true`. To know which value is an element of the filter
+view, the view has to look at each of them. Thus, it must scan the underlying range value-by-value and cannot jump to an 
+arbitrary location in constant time since it cannot know how many elements it had to skip without looking at them. 
+Accordingly, the std::views::filter preserves only std::ranges::bidirectional_range, because it can scan the text in 
+reverse order as well. Since the view cannot guarantee that the values lie in contiguous memory, it can also not 
+preserve std::ranges::contiguous_range. Similarly, the view cannot model std::ranges::sized_range as it cannot determine
+the number of values not filtered out in constant time.
 
 The transform on the other hand produces a new element on every access (the result of the multiplication), therefore
-`v` is not an output range, you cannot assign values to its elements.
-This would have prevented modelling the contiguous_range as well – if it hadn't been already by the filter – because
-values are created on-demand and are not stored in memory at all.
+`v` is not a std::ranges::output_range, you cannot assign values to its elements.
+Note that this prevents modelling the std::ranges::contiguous_range as well because values are created on-demand and
+are not stored in memory at all.
 \endsolution
 
 We provide overview tables for all our view adaptors that document which concepts are modelled by the views they return.
@@ -237,7 +242,7 @@ But SeqAn3 also provides some general purpose views.
 Have a look at the \link views views-submodule \endlink to get an overview of SeqAn's views and also read through the
 detailed description on that page now that you had a more gentle introduction.
 
-\assignment{Exercise: Fun with views III}
+\assignment{Assignment 3: Fun with views III}
 Create a small program that
   1. reads a string from the command line (first argument to the program)
   2. "converts" the string to a range of seqan3::dna5 (Bonus: throw an exception if loss of information occurs)
@@ -270,7 +275,7 @@ To store sequences of small alphabets more space-efficiently, we have developed 
 Open the API documentation of seqan3::bitcompressed_vector, display the inheritance diagram and read through the
 interface overview and the detailed description.
 
-\assignment{Exercise: The bitcompressed vector}
+\assignment{Assignment 4: The bitcompressed vector}
 Create a small program that asks the user for a size and then creates a vector of seqan3::dna4 of that size.
 Add an argument parser flag that allows the user to decide whether std::vector or seqan3::bitcompressed_vector is used.
 After creating the vector, print its size.
