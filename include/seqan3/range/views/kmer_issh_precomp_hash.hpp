@@ -650,9 +650,6 @@ private:
                 std::ranges::advance(text_left,  1);
             }
         }
-        //TODO da bei ISSH keine Base "rausgerechnet" werden muss,
-        //ist eigentlich kein zweiter Iterator notwendig
-        //evtl. gibt es Performanceverbesserungen, wenn text_left entfernt wird
     }
 
     void hash_full_gapped()
@@ -664,39 +661,19 @@ private:
 
     void hash_issh(const V_PreviusShift& shifts)
     {
-        // seqan3::debug_stream << "hash_count: " << hash_count << "\n";
-        // auto pos_not_covered_yet = shifts[0].one_to_change;
-        // hash_value = 0;
         for (size_t k = 0; k < shifts.size(); k++)
         {
             hash_value = hash_values[hash_count - shifts[k].shift_min];
-            //rausgenommen, weil bei ISSH das Hash andersrum aufgebaut ist
-            // partial_hash >>= 2 * shifts[k].one_exit;
             hash_value &= delete_mask;
 
             hash_value &= shifts[k].mask;
-            // partial_hash <<= 2;
             hash_value <<= 2 * shifts[k].one_exit;
-            // hash_value |= partial_hash;
-            // seqan3::debug_stream << "\nhash_value before missing: " << hash_value << "\n";
         }
         for (size_t j = 0; j < shifts[0].one_to_change.size(); ++j)
         {
-            // if (j > 0)
-            // {
-            //     seqan3::debug_stream << "j: " << j << '\n';
-            // }
-            // auto i_to_change = shifts[0].one_to_change[j];
             size_t index_char = hash_count + pos_one[shifts[0].one_to_change[j]];
-            // seqan3::debug_stream << "shifts[0].one_to_change: " << shifts[0].one_to_change[j] << "\n";
-            // hash_value |= to_rank(*(text_right)) << (shifts[0].one_to_change[j] * 2);
-            // hash_value += to_rank(*(text_right));
 
-            // hash_value |= as_rank << (shifts[0].one_to_change[j] * 2);
-            // curr_hash.hash |= ch << (shifts[0].one_to_change[j] * 2);
-            // seqan3::debug_stream << "shifts[0].one_to_change[j]: " << shifts[0].one_to_change[j] << "count_relevant_positions: " << count_relevant_positions << "\n";
             hash_value |= sequence[index_char] << ((count_relevant_positions - 1 - shifts[0].one_to_change[j]) * 2);
-            // seqan3::debug_stream << "as_rank: " << as_rank << "\n";
         }
         hash_values.push_back(hash_value);
     }
